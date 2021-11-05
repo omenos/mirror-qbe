@@ -142,7 +142,7 @@ err(char *s, ...)
 	va_list ap;
 
 	va_start(ap, s);
-	fprintf(stderr, "%s:%d: ", inpath, lnum);
+	fprintf(stderr, "qbe:%s:%d: ", inpath, lnum);
 	vfprintf(stderr, s, ap);
 	fprintf(stderr, "\n");
 	va_end(ap);
