@@ -46,54 +46,52 @@ let ts =
   }
 
 let print_sm =
-  let op_str (k, o) =
-    Printf.sprintf "%s%s"
-      (match o with
-       | Oadd -> "add"
-       | Osub -> "sub"
-       | Omul -> "mul")
-      (match k with
-       | Kw -> "w"
-       | Kl -> "l"
-       | Ks -> "s"
-       | Kd -> "d")
-  in
   StateMap.iter (fun k s' ->
     match k with
     | K (o, sl, sr) ->
+        let top =
+          List.fold_left (fun top c ->
+            match c with
+            | Top r -> top ^ " " ^ r
+            | _ -> top) "" s'.point
+        in
         Printf.printf
-          "(%s %d %d) -> %d\n"
-          (op_str o)
-          sl.id sr.id s'.id
-  )
+          "(%s %d %d) -> %d%s\n"
+          (show_op o)
+          sl.id sr.id s'.id top)
 
-let address_rules =
+let rules =
   let oa = Kl, Oadd in
   let om = Kl, Omul in
-  let rule name pattern =
-    List.mapi (fun i pattern ->
-        { name = Printf.sprintf "%s%d" name (i+1)
-        ; pattern; })
-      (ac_equiv pattern) in
-
+  match `X64Addr with
+  (* ------------------------------- *)
+  | `X64Addr ->
+    let rule name pattern =
+      List.mapi (fun i pattern ->
+          { name (* = Printf.sprintf "%s%d" name (i+1) *)
+          ; pattern })
+        (ac_equiv pattern) in
     (* o + b *)
-  rule "ob" (Bnr (oa, Atm Tmp, Atm AnyCon))
-  @ (* b + s * i *)
-  rule "bs" (Bnr (oa, Atm Tmp, Bnr (om, Atm AnyCon, Atm Tmp)))
-  @ (* o + s * i *)
-  rule "os" (Bnr (oa, Atm AnyCon, Bnr (om, Atm AnyCon, Atm Tmp)))
-  @ (* b + o + s * i *)
-  rule "bos" (Bnr (oa, Bnr (oa, Atm AnyCon, Atm Tmp), Bnr (om, Atm AnyCon, Atm Tmp)))
+    rule "ob" (Bnr (oa, Atm Tmp, Atm AnyCon))
+    @ (* b + s * i *)
+    rule "bs" (Bnr (oa, Atm Tmp, Bnr (om, Atm (Con 4L), Atm Tmp)))
+    @ (* o + s * i *)
+    rule "os" (Bnr (oa, Atm AnyCon, Bnr (om, Atm (Con 4L), Atm Tmp)))
+    @ (* b + o + s * i *)
+    rule "bos" (Bnr (oa, Bnr (oa, Atm AnyCon, Atm Tmp), Bnr (om, Atm (Con 4L), Atm Tmp)))
+  (* ------------------------------- *)
+  | `Add3 ->
+    [ { name = "add"
+      ; pattern = Bnr (oa, Atm Tmp, Bnr (oa, Atm Tmp, Atm Tmp)) } ] @
+    [ { name = "add"
+      ; pattern = Bnr (oa, Bnr (oa, Atm Tmp, Atm Tmp), Atm Tmp) } ] @
+    [ { name = "mul"
+      ; pattern = Bnr (om, Bnr (oa, Bnr (oa, Atm Tmp, Atm Tmp),
+                                    Atm Tmp),
+                           Bnr (oa, Atm Tmp,
+                                    Bnr (oa, Atm Tmp, Atm Tmp))) } ]
 
-let sl, sm = generate_table address_rules
+
+let sl, sm = generate_table rules
 let s n = List.find (fun {id; _} -> id = n) sl
 let () = print_sm sm
-
-(*
-let tp0 =
-  let o = Kw, Oadd in
-  Bnr (o, Atm Tmp, Atm (Con 0L))
-let tp1 =
-  let o = Kw, Oadd in
-  Bnr (o, tp0, Atm (Con 1L))
-*)
