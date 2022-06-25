@@ -744,11 +744,11 @@ returns 1 when the first argument is smaller than the second one.
 ~ Conversions
 ~~~~~~~~~~~~~
 
-Conversion operations allow to change the representation of
-a value, possibly modifying it if the target type cannot hold
-the value of the source type.  Conversions can extend the
-precision of a temporary (e.g., from signed 8-bit to 32-bit),
-or convert a floating point into an integer and vice versa.
+Conversion operations change the representation of a value,
+possibly modifying it if the target type cannot hold the value
+of the source type.  Conversions can extend the precision of a
+temporary (e.g., from signed 8-bit to 32-bit), or convert a
+floating point into an integer and vice versa.
 
   * `extsw`, `extuw` -- `l(w)`
   * `extsh`, `extuh` -- `I(ww)`
@@ -766,17 +766,17 @@ or convert a floating point into an integer and vice versa.
 
 Extending the precision of a temporary is done using the
 `ext` family of instructions.  Because QBE types do not
-precise the signedness (like in LLVM), extension instructions
+specify the signedness (like in LLVM), extension instructions
 exist to sign-extend and zero-extend a value.  For example,
 `extsb` takes a word argument and sign-extends the 8
 least-significant bits to a full word or long, depending on
 the return type.
 
-The instructions `exts` and `truncd` are provided to change
-the precision of a floating point value.  When the double
-argument of `truncd` cannot be represented as a
-single-precision floating point, it is truncated towards
-zero.
+The instructions `exts` (extend single) and `truncd` (truncate
+double) are provided to change the precision of a floating
+point value.  When the double argument of `truncd` cannot
+be represented as a single-precision floating point, it is
+truncated towards zero.
 
 Converting between signed integers and floating points is done
 using `stosi` (single to signed integer), `stoui` (single to
