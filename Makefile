@@ -4,17 +4,14 @@
 PREFIX = /usr/local
 BINDIR = $(PREFIX)/bin
 
-SRC      = main.c util.c parse.c cfg.c mem.c ssa.c alias.c load.c copy.c \
-           fold.c live.c spill.c rega.c gas.c
-AMD64SRC = amd64/targ.c amd64/sysv.c amd64/isel.c amd64/emit.c
-ARM64SRC = arm64/targ.c arm64/abi.c arm64/isel.c arm64/emit.c
-RV64SRC  = rv64/targ.c rv64/abi.c rv64/isel.c rv64/emit.c
-SRCALL   = $(SRC) $(AMD64SRC) $(ARM64SRC) $(RV64SRC)
+COMMOBJ  = main.o util.o parse.o cfg.o mem.o ssa.o alias.o load.o copy.o \
+           fold.o live.o spill.o rega.o gas.o
+AMD64OBJ = amd64/targ.o amd64/sysv.o amd64/isel.o amd64/emit.o
+ARM64OBJ = arm64/targ.o arm64/abi.o arm64/isel.o arm64/emit.o
+RV64OBJ  = rv64/targ.o rv64/abi.o rv64/isel.o rv64/emit.o
+OBJ      = $(COMMOBJ) $(AMD64OBJ) $(ARM64OBJ) $(RV64OBJ)
 
-AMD64OBJ = $(AMD64SRC:.c=.o)
-ARM64OBJ = $(ARM64SRC:.c=.o)
-RV64OBJ  = $(RV64SRC:.c=.o)
-OBJ      = $(SRC:.c=.o) $(AMD64OBJ) $(ARM64OBJ) $(RV64OBJ)
+SRCALL   = $(OBJ:.o=.c)
 
 CFLAGS = $(CPPFLAGS) -Wall -Wextra -std=c99 -g -Wpedantic
 
