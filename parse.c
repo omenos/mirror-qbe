@@ -1071,6 +1071,8 @@ parselnk(Lnk *lnk)
 			lnk->export = 1;
 			break;
 		case Tsection:
+			if (lnk->sec)
+				err("only one section allowed");
 			if (next() != Tstr)
 				err("section \"name\" expected");
 			lnk->sec = tokval.str;
