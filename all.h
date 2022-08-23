@@ -144,8 +144,9 @@ enum O {
 enum J {
 	Jxxx,
 #define JMPS(X)                                 \
-	X(ret0)   X(retw)   X(retl)   X(rets)   \
-	X(retd)   X(retc)   X(jmp)    X(jnz)    \
+	X(retw)   X(retl)   X(rets)   X(retd)   \
+	X(retsb)  X(retub)  X(retsh)  X(retuh)  \
+	X(retc)   X(ret0)   X(jmp)    X(jnz)    \
 	X(jfieq)  X(jfine)  X(jfisge) X(jfisgt) \
 	X(jfisle) X(jfislt) X(jfiuge) X(jfiugt) \
 	X(jfiule) X(jfiult) X(jffeq)  X(jffge)  \
@@ -181,7 +182,7 @@ enum {
 #define isext(o) INRANGE(o, Oextsb, Oextuw)
 #define ispar(o) INRANGE(o, Opar, Opare)
 #define isarg(o) INRANGE(o, Oarg, Oargv)
-#define isret(j) INRANGE(j, Jret0, Jretc)
+#define isret(j) INRANGE(j, Jretw, Jret0)
 
 enum {
 	Kx = -1, /* "top" class (see usecheck() and clsmerge()) */

@@ -27,8 +27,9 @@ char *tok[] = {
 
 	"call", "phi", "jmp", "jnz", "ret", "export",
 	"function", "type", "data", "section", "align",
-	"l", "w", "h", "b", "d", "s", "z", "loadw", "loadl",
-	"loads", "loadd", "alloc1", "alloc2",
+	"l", "w", "sh", "uh", "h", "sb", "ub", "b",
+	"d", "s", "z", "loadw", "loadl", "loads", "loadd",
+	"alloc1", "alloc2",
 
 };
 enum {
@@ -69,7 +70,7 @@ main()
 		th[i] = h;
 	}
 
-	for (i=0; 1<<i < Ntok; ++i);
+	for (i=9; 1<<i < Ntok; ++i);
 	M = 32 - i;
 
 	for (;; --M) {

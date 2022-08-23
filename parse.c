@@ -3,8 +3,15 @@
 #include <stdarg.h>
 
 enum {
-	Ke = -2, /* Erroneous mode */
-	Km = Kl, /* Memory pointer */
+	Ksb = 4, /* matches Oarg/Opar/Jret */
+	Kub,
+	Ksh,
+	Kuh,
+	Kc,
+	K0,
+
+	Ke = -2, /* erroneous mode */
+	Km = Kl, /* memory pointer */
 };
 
 Op optab[NOp] = {
@@ -45,7 +52,11 @@ enum {
 	Talign,
 	Tl,
 	Tw,
+	Tsh,
+	Tuh,
 	Th,
+	Tsb,
+	Tub,
 	Tb,
 	Td,
 	Ts,
@@ -93,12 +104,16 @@ static char *kwmap[Ntok] = {
 	[Tdata] = "data",
 	[Tsection] = "section",
 	[Talign] = "align",
-	[Tl] = "l",
-	[Tw] = "w",
-	[Th] = "h",
+	[Tsb] = "sb",
+	[Tub] = "ub",
+	[Tsh] = "sh",
+	[Tuh] = "uh",
 	[Tb] = "b",
-	[Td] = "d",
+	[Th] = "h",
+	[Tw] = "w",
+	[Tl] = "l",
 	[Ts] = "s",
+	[Td] = "d",
 	[Tz] = "z",
 	[Tdots] = "...",
 };
@@ -109,7 +124,7 @@ enum {
 	TMask = 16383, /* for temps hash */
 	BMask = 8191, /* for blocks hash */
 
-	K = 5041217, /* found using tools/lexh.c */
+	K = 9583425, /* found using tools/lexh.c */
 	M = 23,
 };
 
@@ -427,7 +442,15 @@ parsecls(int *tyn)
 		err("invalid class specifier");
 	case Ttyp:
 		*tyn = findtyp(ntyp);
-		return 4;
+		return Kc;
+	case Tsb:
+		return Ksb;
+	case Tub:
+		return Kub;
+	case Tsh:
+		return Ksh;
+	case Tuh:
+		return Kuh;
 	case Tw:
 		return Kw;
 	case Tl:
@@ -482,16 +505,21 @@ parserefl(int arg)
 			err("invalid argument");
 		if (!arg && rtype(r) != RTmp)
 			err("invalid function parameter");
-		if (k == 4)
-			if (arg)
-				*curi = (Ins){Oargc, Kl, R, {TYPE(ty), r}};
-			else
-				*curi = (Ins){Oparc, Kl, r, {TYPE(ty)}};
-		else if (env)
+		if (env)
 			if (arg)
 				*curi = (Ins){Oarge, k, R, {r}};
 			else
 				*curi = (Ins){Opare, k, r, {R}};
+		else if (k == Kc)
+			if (arg)
+				*curi = (Ins){Oargc, Kl, R, {TYPE(ty), r}};
+			else
+				*curi = (Ins){Oparc, Kl, r, {TYPE(ty)}};
+		else if (k >= Ksb)
+			if (arg)
+				*curi = (Ins){Oargsb+(k-Ksb), Kw, R, {r}};
+			else
+				*curi = (Ins){Oparsb+(k-Ksb), Kw, r, {R}};
 		else
 			if (arg)
 				*curi = (Ins){Oarg, k, R, {r}};
@@ -578,14 +606,10 @@ parseline(PState ps)
 		expect(Tnl);
 		return PPhi;
 	case Tret:
-		curb->jmp.type = (int[]){
-			Jretw, Jretl,
-			Jrets, Jretd,
-			Jretc, Jret0
-		}[rcls];
+		curb->jmp.type = Jretw + rcls;
 		if (peek() == Tnl)
 			curb->jmp.type = Jret0;
-		else if (rcls < 5) {
+		else if (rcls != K0) {
 			r = parseref();
 			if (req(r, R))
 				err("invalid return value");
@@ -632,11 +656,13 @@ DoOp:
 		parserefl(1);
 		op = Ocall;
 		expect(Tnl);
-		if (k == 4) {
+		if (k == Kc) {
 			k = Kl;
 			arg[1] = TYPE(ty);
 		} else
 			arg[1] = R;
+		if (k >= Ksb)
+			k = Kw;
 		goto Ins;
 	}
 	if (op == Tloadw)
@@ -645,7 +671,7 @@ DoOp:
 		op = Oload;
 	if (op == Talloc1 || op == Talloc2)
 		op = Oalloc;
-	if (k == 4)
+	if (k >= Ksb)
 		err("size class must be w, l, s, or d");
 	if (op >= NPubOp)
 		err("invalid instruction");
@@ -774,10 +800,13 @@ typecheck(Fn *fn)
 			}
 		r = b->jmp.arg;
 		if (isret(b->jmp.type)) {
-			if (b->jmp.type == Jretc) {
-				if (!usecheck(r, Kl, fn))
-					goto JErr;
-			} else if (!usecheck(r, b->jmp.type-Jretw, fn))
+			if (b->jmp.type == Jretc)
+				k = Kl;
+			else if (b->jmp.type >= Jretsb)
+				k = Kw;
+			else
+				k = b->jmp.type - Jretw;
+			if (!usecheck(r, k, fn))
 				goto JErr;
 		}
 		if (b->jmp.type == Jjnz && !usecheck(r, Kw, fn))
@@ -818,7 +847,7 @@ parsefn(Lnk *lnk)
 	if (peek() != Tglo)
 		rcls = parsecls(&curf->retty);
 	else
-		rcls = 5;
+		rcls = K0;
 	if (next() != Tglo)
 		err("function name expected");
 	strncpy(curf->name, tokval.str, NString-1);
@@ -1266,6 +1295,10 @@ printfn(Fn *fn, FILE *f)
 		}
 		switch (b->jmp.type) {
 		case Jret0:
+		case Jretsb:
+		case Jretub:
+		case Jretsh:
+		case Jretuh:
 		case Jretw:
 		case Jretl:
 		case Jrets:
