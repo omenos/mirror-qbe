@@ -77,6 +77,8 @@ filluse(Fn *fn)
 			if (!req(i->to, R)) {
 				assert(rtype(i->to) == RTmp);
 				w = WFull;
+				if (isparbh(i->op))
+					w = Wsb + (i->op - Oparsb);
 				if (isload(i->op) && i->op != Oload)
 					w = Wsb + (i->op - Oloadsb);
 				if (isext(i->op))
