@@ -17,7 +17,7 @@ data $emptystr = { b 0 }
 export
 function $qfn0(s %p0, s %p1, s %p2, s %p3, s %p4, s %p5, s %p6, s %p7, s %p8) {
 @start
-	%r0 =w call $printf(l $ctoqbestr, w 0)
+	%r0 =w call $printf(l $ctoqbestr, ..., w 0)
 	call $ps(s %p8)
 	%r1 =w call $puts(l $emptystr)
 	ret
@@ -25,7 +25,7 @@ function $qfn0(s %p0, s %p1, s %p2, s %p3, s %p4, s %p5, s %p6, s %p7, s %p8) {
 export
 function $qfn1(w %p0, s %p1, :fi1 %p2) {
 @start
-	%r0 =w call $printf(l $ctoqbestr, w 1)
+	%r0 =w call $printf(l $ctoqbestr, ..., w 1)
 	call $pw(w %p0)
 	call $ps(s %p1)
 	call $pfi1(l %p2)
@@ -35,7 +35,7 @@ function $qfn1(w %p0, s %p1, :fi1 %p2) {
 export
 function $qfn2(w %p0, :fi2 %p1, s %p2) {
 @start
-	%r0 =w call $printf(l $ctoqbestr, w 2)
+	%r0 =w call $printf(l $ctoqbestr, ..., w 2)
 	call $pw(w %p0)
 	call $pfi2(l %p1)
 	call $ps(s %p2)
@@ -45,7 +45,7 @@ function $qfn2(w %p0, :fi2 %p1, s %p2) {
 export
 function $qfn3(w %p0, s %p1, :fi3 %p2) {
 @start
-	%r0 =w call $printf(l $ctoqbestr, w 3)
+	%r0 =w call $printf(l $ctoqbestr, ..., w 3)
 	call $pw(w %p0)
 	call $ps(s %p1)
 	call $pfi3(l %p2)
@@ -55,7 +55,7 @@ function $qfn3(w %p0, s %p1, :fi3 %p2) {
 export
 function $qfn4(:ss %p0) {
 @start
-	%r0 =w call $printf(l $ctoqbestr, w 4)
+	%r0 =w call $printf(l $ctoqbestr, ..., w 4)
 	call $pss(l %p0)
 	%r1 =w call $puts(l $emptystr)
 	ret
@@ -63,7 +63,7 @@ function $qfn4(:ss %p0) {
 export
 function $qfn5(d %p0, d %p1, d %p2, d %p3, d %p4, d %p5, d %p6, :ss %p7, s %p8, l %p9) {
 @start
-	%r0 =w call $printf(l $ctoqbestr, w 5)
+	%r0 =w call $printf(l $ctoqbestr, ..., w 5)
 	call $pss(l %p7)
 	call $ps(s %p8)
 	call $pl(l %p9)
@@ -73,7 +73,7 @@ function $qfn5(d %p0, d %p1, d %p2, d %p3, d %p4, d %p5, d %p6, :ss %p7, s %p8, 
 export
 function $qfn6(:lb %p0) {
 @start
-	%r0 =w call $printf(l $ctoqbestr, w 6)
+	%r0 =w call $printf(l $ctoqbestr, ..., w 6)
 	call $plb(l %p0)
 	%r1 =w call $puts(l $emptystr)
 	ret
@@ -81,7 +81,7 @@ function $qfn6(:lb %p0) {
 export
 function $qfn7(w %p0, w %p1, w %p2, w %p3, w %p4, w %p5, w %p6, :lb %p7) {
 @start
-	%r0 =w call $printf(l $ctoqbestr, w 7)
+	%r0 =w call $printf(l $ctoqbestr, ..., w 7)
 	call $plb(l %p7)
 	%r1 =w call $puts(l $emptystr)
 	ret
@@ -89,7 +89,7 @@ function $qfn7(w %p0, w %p1, w %p2, w %p3, w %p4, w %p5, w %p6, :lb %p7) {
 export
 function $qfn8(w %p0, w %p1, w %p2, w %p3, w %p4, w %p5, w %p6, w %p7, :lb %p8) {
 @start
-	%r0 =w call $printf(l $ctoqbestr, w 8)
+	%r0 =w call $printf(l $ctoqbestr, ..., w 8)
 	call $plb(l %p8)
 	%r1 =w call $puts(l $emptystr)
 	ret
@@ -97,7 +97,7 @@ function $qfn8(w %p0, w %p1, w %p2, w %p3, w %p4, w %p5, w %p6, w %p7, :lb %p8) 
 export
 function $qfn9(:big %p0) {
 @start
-	%r0 =w call $printf(l $ctoqbestr, w 9)
+	%r0 =w call $printf(l $ctoqbestr, ..., w 9)
 	call $pbig(l %p0)
 	%r1 =w call $puts(l $emptystr)
 	ret
@@ -105,7 +105,7 @@ function $qfn9(:big %p0) {
 export
 function $qfn10(w %p0, w %p1, w %p2, w %p3, w %p4, w %p5, w %p6, w %p7, :big %p8, s %p9, l %p10) {
 @start
-	%r0 =w call $printf(l $ctoqbestr, w 10)
+	%r0 =w call $printf(l $ctoqbestr, ..., w 10)
 	call $pbig(l %p8)
 	call $ps(s %p9)
 	call $pl(l %p10)
