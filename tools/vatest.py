@@ -7,7 +7,7 @@ from struct import unpack
 I, D = 'd', 'g'
 
 formats = [
-	# list of format to tests
+	# list of formats to test
 	[I],
 	[D],
 	[I,D],
@@ -25,7 +25,7 @@ generate = [
 	# floating point arguments to
 	# test
 	(0, 0), (1, 0), (0, 1), (4, 0),
-	(0, 6), (5, 7), (10, 10),
+	(0, 6), (5, 7), (10, 10), (9, 0),
 ]
 
 def mkargs(nargs, type, name):
@@ -63,6 +63,7 @@ def genssa(qbeprint, qbecall):
 
 def gendriver():
 	print('# >>> driver')
+	print('# #include <stdarg.h>')
 	print('# #include <stdio.h>')
 
 	for fnum, (nia, nfa) in enumerate(generate):
@@ -76,6 +77,9 @@ def gendriver():
 			)
 
 	output = ''
+	print('# int print(char *fmt, va_list *ap) {')
+	print('#    return vprintf(fmt, *ap);');
+	print('# }')
 	print('# int main() {')
 
 	for fnum, (nia, nfa) in enumerate(generate):
@@ -113,7 +117,7 @@ qbeprint="""{{
 	storew {}, %fmtint
 	storew {}, %fmtdbl
 	storew 0, %emptys
-	%vp =l alloc8 24
+	%vp =l alloc8 32
 	%fmt1 =l add 1, %fmt
 	vastart %vp
 @loop
@@ -126,14 +130,14 @@ qbeprint="""{{
 	jnz %isg, @casef, @cased
 @casef
 	%dbl =d vaarg %vp
-	call $printf(l %fmtdbl, d %dbl, ...)
+	%r =w call $printf(l %fmtdbl, ..., d %dbl)
 	jmp @loop
 @cased
 	%int =w vaarg %vp
-	call $printf(l %fmtint, w %int, ...)
+	%r =w call $printf(l %fmtint, ..., w %int)
 	jmp @loop
 @end
-	call $puts(l %emptys)
+	%r =w call $puts(l %emptys)
 	ret
 }}
 """.format(
@@ -143,9 +147,9 @@ qbeprint="""{{
 
 qbecall="""{
 @start
-	%vp =l alloc8 24
+	%vp =l alloc8 32
 	vastart %vp
-	call $vprintf(l %fmt, l %vp)
+	%r =w call $print(l %fmt, l %vp)
 	ret
 }
 """
