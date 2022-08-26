@@ -162,8 +162,11 @@ main(int ac, char *av[])
 			fprintf(hf, "\t%-11s output to file\n", "-o file");
 			fprintf(hf, "\t%-11s generate for a target among:\n", "-t <target>");
 			fprintf(hf, "\t%-11s ", "");
-			for (t=tlist, sep=""; *t; t++, sep=", ")
+			for (t=tlist, sep=""; *t; t++, sep=", ") {
 				fprintf(hf, "%s%s", sep, (*t)->name);
+				if (*t == &Deftgt)
+					fputs(" (default)", hf);
+			}
 			fprintf(hf, "\n");
 			fprintf(hf, "\t%-11s generate gas (e) or osx (m) asm\n", "-G {e,m}");
 			fprintf(hf, "\t%-11s dump debug information\n", "-d <flags>");
