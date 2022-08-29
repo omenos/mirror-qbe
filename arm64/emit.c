@@ -245,7 +245,7 @@ emitf(char *s, Ins *i, E *e)
 static void
 loadcon(Con *c, int r, int k, FILE *f)
 {
-	char *rn, *p, off[32];
+	char *rn, *l, *p, off[32];
 	int64_t n;
 	int w, sh;
 
@@ -258,11 +258,12 @@ loadcon(Con *c, int r, int k, FILE *f)
 			sprintf(off, "+%"PRIi64, n);
 		else
 			off[0] = 0;
-		p = c->local ? ".L" : "";
+		l = str(c->label);
+		p = c->local ? T.asloc : l[0] == '"' ? "" : T.assym;
 		fprintf(f, "\tadrp\t%s, %s%s%s\n",
-			rn, p, str(c->label), off);
+			rn, p, l, off);
 		fprintf(f, "\tadd\t%s, %s, #:lo12:%s%s%s\n",
-			rn, rn, p, str(c->label), off);
+			rn, rn, p, l, off);
 		return;
 	}
 	assert(c->type == CBits);
@@ -451,7 +452,7 @@ arm64_emitfn(Fn *fn, FILE *out)
 	Ins *i;
 	E *e;
 
-	gasemitlnk(fn->name, &fn->lnk, ".text", out);
+	emitlnk(fn->name, &fn->lnk, ".text", out);
 	e = &(E){.f = out, .fn = fn};
 	framelayout(e);
 
@@ -500,7 +501,7 @@ arm64_emitfn(Fn *fn, FILE *out)
 
 	for (lbl=0, b=e->fn->start; b; b=b->link) {
 		if (lbl || b->npred > 1)
-			fprintf(e->f, ".L%d:\n", id0+b->id);
+			fprintf(e->f, "%s%d:\n", T.asloc, id0+b->id);
 		for (i=b->ins; i!=&b->ins[b->nins]; i++)
 			emitins(i, e);
 		lbl = 1;
@@ -550,7 +551,10 @@ arm64_emitfn(Fn *fn, FILE *out)
 		case Jjmp:
 		Jmp:
 			if (b->s1 != b->link)
-				fprintf(e->f, "\tb\t.L%d\n", id0+b->s1->id);
+				fprintf(e->f,
+					"\tb\t%s%d\n",
+					T.asloc, id0+b->s1->id
+				);
 			else
 				lbl = 0;
 			break;
@@ -564,9 +568,13 @@ arm64_emitfn(Fn *fn, FILE *out)
 				b->s2 = t;
 			} else
 				c = cmpneg(c);
-			fprintf(e->f, "\tb%s\t.L%d\n", ctoa[c], id0+b->s2->id);
+			fprintf(e->f,
+				"\tb%s\t%s%d\n",
+				ctoa[c], T.asloc, id0+b->s2->id
+			);
 			goto Jmp;
 		}
 	}
 	id0 += e->fn->nblk;
+	elf_emitfnfin(e->fn->name, e->f);
 }

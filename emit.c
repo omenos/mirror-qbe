@@ -1,27 +1,7 @@
 #include "all.h"
 
-
-char *gasloc, *gassym;
-static int gasasm;
-
 void
-gasinit(enum Asm asmmode)
-{
-	gasasm = asmmode;
-	switch (gasasm) {
-	case Gaself:
-		gasloc = ".L";
-		gassym = "";
-		break;
-	case Gasmacho:
-		gasloc = "L";
-		gassym = "_";
-		break;
-	}
-}
-
-void
-gasemitlnk(char *n, Lnk *l, char *s, FILE *f)
+emitlnk(char *n, Lnk *l, char *s, FILE *f)
 {
 	char *p;
 
@@ -35,23 +15,14 @@ gasemitlnk(char *n, Lnk *l, char *s, FILE *f)
 	fputc('\n', f);
 	if (l->align)
 		fprintf(f, ".balign %d\n", l->align);
-	p = n[0] == '"' ? "" : gassym;
+	p = n[0] == '"' ? "" : T.assym;
 	if (l->export)
 		fprintf(f, ".globl %s%s\n", p, n);
 	fprintf(f, "%s%s:\n", p, n);
 }
 
 void
-gasemitfntail(char *fn, FILE *f)
-{
-	if (gasasm == Gaself) {
-		fprintf(f, ".type %s, @function\n", fn);
-		fprintf(f, ".size %s, .-%s\n", fn, fn);
-	}
-}
-
-void
-gasemitdat(Dat *d, FILE *f)
+emitdat(Dat *d, FILE *f)
 {
 	static char *dtoa[] = {
 		[DB] = "\t.byte",
@@ -68,7 +39,7 @@ gasemitdat(Dat *d, FILE *f)
 		break;
 	case DEnd:
 		if (zero != -1) {
-			gasemitlnk(d->name, d->lnk, ".bss", f);
+			emitlnk(d->name, d->lnk, ".bss", f);
 			fprintf(f, "\t.fill %"PRId64",1,0\n", zero);
 		}
 		break;
@@ -80,7 +51,7 @@ gasemitdat(Dat *d, FILE *f)
 		break;
 	default:
 		if (zero != -1) {
-			gasemitlnk(d->name, d->lnk, ".data", f);
+			emitlnk(d->name, d->lnk, ".data", f);
 			if (zero > 0)
 				fprintf(f, "\t.fill %"PRId64",1,0\n", zero);
 			zero = -1;
@@ -91,7 +62,7 @@ gasemitdat(Dat *d, FILE *f)
 			fprintf(f, "\t.ascii %s\n", d->u.str);
 		}
 		else if (d->isref) {
-			p = d->u.ref.name[0] == '"' ? "" : gassym;
+			p = d->u.ref.name[0] == '"' ? "" : T.assym;
 			fprintf(f, "%s %s%s%+"PRId64"\n",
 				dtoa[d->type], p, d->u.ref.name,
 				d->u.ref.off);
@@ -115,7 +86,7 @@ struct Asmbits {
 static Asmbits *stash;
 
 int
-gasstash(void *bits, int size)
+stashbits(void *bits, int size)
 {
 	Asmbits **pb, *b;
 	int i;
@@ -133,42 +104,69 @@ gasstash(void *bits, int size)
 	return i;
 }
 
-void
-gasemitfin(FILE *f)
+static void
+emitfin(FILE *f, char *sec[3])
 {
 	Asmbits *b;
 	char *p;
-	int sz, i;
+	int lg, i;
 	double d;
 
-	if (gasasm == Gaself)
-		fprintf(f, ".section .note.GNU-stack,\"\",@progbits\n\n");
 	if (!stash)
 		return;
-	fprintf(f, "/* floating point constants */\n.data\n");
-	for (sz=16; sz>=4; sz/=2)
+	fprintf(f, "/* floating point constants */\n");
+	for (lg=4; lg>=2; lg--)
 		for (b=stash, i=0; b; b=b->link, i++) {
-			if (b->size == sz) {
+			if (b->size == (1<<lg)) {
 				fprintf(f,
-					".balign %d\n"
+					".section %s\n"
+					".p2align %d\n"
 					"%sfp%d:",
-					sz, gasloc, i
+					sec[lg-2], lg, T.asloc, i
 				);
-				for (p=b->bits; p<&b->bits[sz]; p+=4)
+				for (p=b->bits; p<&b->bits[b->size]; p+=4)
 					fprintf(f, "\n\t.int %"PRId32,
 						*(int32_t *)p);
-				if (sz <= 8) {
-					if (sz == 4)
+				if (lg <= 3) {
+					if (lg == 2)
 						d = *(float *)b->bits;
 					else
 						d = *(double *)b->bits;
-					fprintf(f, " /* %f */\n", d);
+					fprintf(f, " /* %f */\n\n", d);
 				} else
-					fprintf(f, "\n");
+					fprintf(f, "\n\n");
 			}
 		}
 	while ((b=stash)) {
 		stash = b->link;
 		free(b);
 	}
+}
+
+void
+elf_emitfin(FILE *f)
+{
+	static char *sec[3] = { ".rodata", ".rodata", ".rodata" };
+
+	emitfin(f ,sec);
+	fprintf(f, ".section .note.GNU-stack,\"\",@progbits\n");
+}
+
+void
+elf_emitfnfin(char *fn, FILE *f)
+{
+	fprintf(f, ".type %s, @function\n", fn);
+	fprintf(f, ".size %s, .-%s\n", fn, fn);
+}
+
+void
+macho_emitfin(FILE *f)
+{
+	static char *sec[3] = {
+		"__TEXT,__literal4,4byte_literals",
+		"__TEXT,__literal8,8byte_literals",
+		".rodata", /* should not happen */
+	};
+
+	emitfin(f, sec);
 }

@@ -55,6 +55,9 @@ struct Target {
 	void (*abi)(Fn *);
 	void (*isel)(Fn *);
 	void (*emitfn)(Fn *, FILE *);
+	void (*emitfin)(FILE *);
+	char asloc[4];
+	char assym[4];
 };
 
 #define BIT(n) ((bits)1 << (n))
@@ -524,16 +527,10 @@ void spill(Fn *);
 /* rega.c */
 void rega(Fn *);
 
-/* gas.c */
-enum Asm {
-	Gasmacho,
-	Gaself,
-};
-extern char *gasloc;
-extern char *gassym;
-void gasinit(enum Asm);
-void gasemitlnk(char *, Lnk *, char *, FILE *);
-void gasemitfntail(char *, FILE *);
-void gasemitdat(Dat *, FILE *);
-int gasstash(void *, int);
-void gasemitfin(FILE *);
+/* emit.c */
+void emitlnk(char *, Lnk *, char *, FILE *);
+void emitdat(Dat *, FILE *);
+int stashbits(void *, int);
+void elf_emitfnfin(char *, FILE *);
+void elf_emitfin(FILE *);
+void macho_emitfin(FILE *);

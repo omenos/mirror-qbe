@@ -41,6 +41,8 @@ Target T_arm64 = {
 	.abi = arm64_abi,
 	.isel = arm64_isel,
 	.emitfn = arm64_emitfn,
+	.emitfin = elf_emitfin,
+	.asloc = ".L",
 };
 
 MAKESURE(globals_are_not_arguments,

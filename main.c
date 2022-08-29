@@ -19,11 +19,13 @@ char debug['Z'+1] = {
 };
 
 extern Target T_amd64_sysv;
+extern Target T_amd64_apple;
 extern Target T_arm64;
 extern Target T_rv64;
 
 static Target *tlist[] = {
 	&T_amd64_sysv,
+	&T_amd64_apple,
 	&T_arm64,
 	&T_rv64,
 	0
@@ -40,7 +42,7 @@ data(Dat *d)
 		fputs("/* end data */\n\n", outf);
 		freeall();
 	}
-	gasemitdat(d, outf);
+	emitdat(d, outf);
 }
 
 static void
@@ -92,7 +94,6 @@ func(Fn *fn)
 			fn->rpo[n]->link = fn->rpo[n+1];
 	if (!dbg) {
 		T.emitfn(fn, outf);
-		gasemitfntail(fn->name, outf);
 		fprintf(outf, "/* end function %s */\n\n", fn->name);
 	} else
 		fprintf(stderr, "\n");
@@ -105,12 +106,11 @@ main(int ac, char *av[])
 	Target **t;
 	FILE *inf, *hf;
 	char *f, *sep;
-	int c, asmmode;
+	int c;
 
-	asmmode = Defasm;
 	T = Deftgt;
 	outf = stdout;
-	while ((c = getopt(ac, av, "hd:o:G:t:")) != -1)
+	while ((c = getopt(ac, av, "hd:o:t:")) != -1)
 		switch (c) {
 		case 'd':
 			for (; *optarg; optarg++)
@@ -144,16 +144,6 @@ main(int ac, char *av[])
 				}
 			}
 			break;
-		case 'G':
-			if (strcmp(optarg, "e") == 0)
-				asmmode = Gaself;
-			else if (strcmp(optarg, "m") == 0)
-				asmmode = Gasmacho;
-			else {
-				fprintf(stderr, "unknown gas flavor '%s'\n", optarg);
-				exit(1);
-			}
-			break;
 		case 'h':
 		default:
 			hf = c != 'h' ? stderr : stdout;
@@ -168,12 +158,9 @@ main(int ac, char *av[])
 					fputs(" (default)", hf);
 			}
 			fprintf(hf, "\n");
-			fprintf(hf, "\t%-11s generate gas (e) or osx (m) asm\n", "-G {e,m}");
 			fprintf(hf, "\t%-11s dump debug information\n", "-d <flags>");
 			exit(c != 'h');
 		}
-
-	gasinit(asmmode);
 
 	do {
 		f = av[optind];
@@ -192,7 +179,7 @@ main(int ac, char *av[])
 	} while (++optind < ac);
 
 	if (!dbg)
-		gasemitfin(outf);
+		T.emitfin(outf);
 
 	exit(0);
 }

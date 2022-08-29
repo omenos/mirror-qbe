@@ -415,7 +415,7 @@ rv64_emitfn(Fn *fn, FILE *f)
 	Blk *b, *s;
 	Ins *i;
 
-	gasemitlnk(fn->name, &fn->lnk, ".text", f);
+	emitlnk(fn->name, &fn->lnk, ".text", f);
 
 	if (fn->vararg) {
 		/* TODO: only need space for registers
