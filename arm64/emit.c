@@ -7,6 +7,7 @@ struct E {
 	Fn *fn;
 	uint64_t frame;
 	uint padding;
+	int apple;
 };
 
 #define CMP(X) \
@@ -144,10 +145,10 @@ slot(int s, E *e)
 	if (s == -1)
 		return 16 + e->frame;
 	if (s < 0) {
-		if (e->fn->vararg)
-			return 16 + e->frame + 192 - (s+2)*8;
+		if (e->fn->vararg && !e->apple)
+			return 16 + e->frame + 192 - (s+2);
 		else
-			return 16 + e->frame - (s+2)*8;
+			return 16 + e->frame - (s+2);
 	} else
 		return 16 + e->padding + 4 * s;
 }
@@ -243,8 +244,16 @@ emitf(char *s, Ins *i, E *e)
 }
 
 static void
-loadcon(Con *c, int r, int k, FILE *f)
+loadcon(Con *c, int r, int k, E *e)
 {
+	static char *ldsym[][2] = {
+		/* arm64 */
+		[0][0] = "\tadrp\t%s, %s%s%s\n",
+		[0][1] = "\tadd\t%s, %s, #:lo12:%s%s%s\n",
+		/* apple */
+		[1][0] = "\tadrp\t%s, %s%s@page%s\n",
+		[1][1] = "\tadd\t%s, %s, %s%s@pageoff%s\n",
+	};
 	char *rn, *l, *p, off[32];
 	int64_t n;
 	int w, sh;
@@ -261,24 +270,22 @@ loadcon(Con *c, int r, int k, FILE *f)
 			off[0] = 0;
 		l = str(c->label);
 		p = c->local ? T.asloc : l[0] == '"' ? "" : T.assym;
-		fprintf(f, "\tadrp\t%s, %s%s%s\n",
-			rn, p, l, off);
-		fprintf(f, "\tadd\t%s, %s, #:lo12:%s%s%s\n",
-			rn, rn, p, l, off);
+		fprintf(e->f, ldsym[e->apple][0], rn, p, l, off);
+		fprintf(e->f, ldsym[e->apple][1], rn, rn, p, l, off);
 		return;
 	}
 	assert(c->type == CBits);
 	if (!w)
 		n = (int32_t)n;
 	if ((n | 0xffff) == -1 || arm64_logimm(n, k)) {
-		fprintf(f, "\tmov\t%s, #%"PRIi64"\n", rn, n);
+		fprintf(e->f, "\tmov\t%s, #%"PRIi64"\n", rn, n);
 	} else {
-		fprintf(f, "\tmov\t%s, #%d\n",
+		fprintf(e->f, "\tmov\t%s, #%d\n",
 			rn, (int)(n & 0xffff));
 		for (sh=16; n>>=16; sh+=16) {
 			if ((!w && sh == 32) || sh == 64)
 				break;
-			fprintf(f, "\tmovk\t%s, #0x%x, lsl #%d\n",
+			fprintf(e->f, "\tmovk\t%s, #0x%x, lsl #%d\n",
 				rn, (uint)(n & 0xffff), sh);
 		}
 	}
@@ -358,7 +365,7 @@ emitins(Ins *i, E *e)
 		switch (rtype(i->arg[0])) {
 		case RCon:
 			c = &e->fn->con[i->arg[0].val];
-			loadcon(c, i->to.val, i->cls, e->f);
+			loadcon(c, i->to.val, i->cls, e);
 			break;
 		case RSlot:
 			i->op = Oload;
@@ -450,8 +457,8 @@ framelayout(E *e)
 
 */
 
-void
-arm64_emitfn(Fn *fn, FILE *out)
+static void
+emitfn(E *e)
 {
 	static char *ctoa[] = {
 	#define X(c, s) [c] = s,
@@ -463,13 +470,11 @@ arm64_emitfn(Fn *fn, FILE *out)
 	uint64_t o;
 	Blk *b, *t;
 	Ins *i;
-	E *e;
 
-	emitlnk(fn->name, &fn->lnk, ".text", out);
-	e = &(E){.f = out, .fn = fn};
+	emitlnk(e->fn->name, &e->fn->lnk, ".text", e->f);
 	framelayout(e);
 
-	if (e->fn->vararg) {
+	if (e->fn->vararg && !e->apple) {
 		for (n=7; n>=0; n--)
 			fprintf(e->f, "\tstr\tq%d, [sp, -16]!\n", n);
 		for (n=7; n>=0; n-=2)
@@ -531,7 +536,7 @@ arm64_emitfn(Fn *fn, FILE *out)
 			if (e->fn->dynalloc)
 				fputs("\tmov sp, x29\n", e->f);
 			o = e->frame + 16;
-			if (e->fn->vararg)
+			if (e->fn->vararg && !e->apple)
 				o += 192;
 			if (o <= 504)
 				fprintf(e->f,
@@ -589,5 +594,18 @@ arm64_emitfn(Fn *fn, FILE *out)
 		}
 	}
 	id0 += e->fn->nblk;
-	elf_emitfnfin(e->fn->name, e->f);
+}
+
+void
+arm64_emitfn(Fn *fn, FILE *out)
+{
+	emitfn(&(E){.f = out, .fn = fn, .apple = 0});
+	elf_emitfnfin(fn->name, out);
+}
+
+void
+apple_emitfn(Fn *fn, FILE *out)
+{
+	fn->lnk.align = 4;
+	emitfn(&(E){.f = out, .fn = fn, .apple = 1});
 }

@@ -30,7 +30,14 @@ main.o: config.h
 config.h:
 	@case `uname` in                               \
 	*Darwin*)                                      \
-		echo "#define Deftgt T_amd64_apple";   \
+		case `uname -m` in                     \
+		*arm64*)                               \
+			echo "#define Deftgt T_arm64_apple";\
+			;;                             \
+		*)                                     \
+			echo "#define Deftgt T_amd64_apple";\
+			;;                             \
+		esac                                   \
 		;;                                     \
 	*)                                             \
 		case `uname -m` in                     \
