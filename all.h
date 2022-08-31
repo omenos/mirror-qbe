@@ -52,7 +52,8 @@ struct Target {
 	bits (*retregs)(Ref, int[2]);
 	bits (*argregs)(Ref, int[2]);
 	int (*memargs)(int);
-	void (*abi)(Fn *);
+	void (*abi0)(Fn *);
+	void (*abi1)(Fn *);
 	void (*isel)(Fn *);
 	void (*emitfn)(Fn *, FILE *);
 	void (*emitfin)(FILE *);
@@ -183,6 +184,9 @@ enum {
 #define ispar(o) INRANGE(o, Opar, Opare)
 #define isarg(o) INRANGE(o, Oarg, Oargv)
 #define isret(j) INRANGE(j, Jretw, Jret0)
+#define isparbh(o) INRANGE(o, Oparsb, Oparuh)
+#define isargbh(o) INRANGE(o, Oargsb, Oarguh)
+#define isretbh(j) INRANGE(j, Jretsb, Jretuh)
 
 enum {
 	Kx = -1, /* "top" class (see usecheck() and clsmerge()) */
@@ -477,6 +481,9 @@ void parse(FILE *, char *, void (Dat *), void (Fn *));
 void printfn(Fn *, FILE *);
 void printref(Ref, Fn *, FILE *);
 void err(char *, ...) __attribute__((noreturn));
+
+/* abi.c */
+void elimsb(Fn *);
 
 /* cfg.c */
 Blk *blknew(void);

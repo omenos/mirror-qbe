@@ -56,6 +56,7 @@ func(Fn *fn)
 		fprintf(stderr, "\n> After parsing:\n");
 		printfn(fn, stderr);
 	}
+	T.abi0(fn);
 	fillrpo(fn);
 	fillpreds(fn);
 	filluse(fn);
@@ -71,7 +72,7 @@ func(Fn *fn)
 	copy(fn);
 	filluse(fn);
 	fold(fn);
-	T.abi(fn);
+	T.abi1(fn);
 	fillpreds(fn);
 	filluse(fn);
 	T.isel(fn);

@@ -24,7 +24,8 @@ amd64_memargs(int op)
 	.retregs = amd64_sysv_retregs, \
 	.argregs = amd64_sysv_argregs, \
 	.memargs = amd64_memargs, \
-	.abi = amd64_sysv_abi, \
+	.abi0 = elimsb, \
+	.abi1 = amd64_sysv_abi, \
 	.isel = amd64_isel, \
 
 Target T_amd64_sysv = {
