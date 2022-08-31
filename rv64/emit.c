@@ -361,14 +361,14 @@ emitins(Ins *i, Fn *fn, FILE *f)
 		case RCon:
 			con = &fn->con[i->arg[0].val];
 			if (con->type != CAddr || con->bits.i)
-				goto invalid;
+				goto Invalid;
 			fprintf(f, "\tcall %s\n", str(con->label));
 			break;
 		case RTmp:
 			emitf("jalr %0", i, fn, f);
 			break;
 		default:
-		invalid:
+		Invalid:
 			die("invalid call argument");
 		}
 		break;
