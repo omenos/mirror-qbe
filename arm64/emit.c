@@ -158,7 +158,7 @@ emitf(char *s, Ins *i, E *e)
 	Ref r;
 	int k, c;
 	Con *pc;
-	unsigned n, sp;
+	uint n, sp;
 
 	fputc('\t', e->f);
 
@@ -255,6 +255,7 @@ loadcon(Con *c, int r, int k, FILE *f)
 	if (c->type == CAddr) {
 		rn = rname(r, Kl);
 		if (n)
+			/* todo, handle large offsets */
 			sprintf(off, "+%"PRIi64, n);
 		else
 			off[0] = 0;
@@ -278,7 +279,7 @@ loadcon(Con *c, int r, int k, FILE *f)
 			if ((!w && sh == 32) || sh == 64)
 				break;
 			fprintf(f, "\tmovk\t%s, #0x%x, lsl #%d\n",
-				rn, (unsigned)(n & 0xffff), sh);
+				rn, (uint)(n & 0xffff), sh);
 		}
 	}
 }
