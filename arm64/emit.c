@@ -306,10 +306,11 @@ fixarg(Ref *pr, int sz, E *e)
 static void
 emitins(Ins *i, E *e)
 {
-	char *rn;
+	char *l, *p, *rn;
 	uint64_t s;
 	int o;
 	Ref r;
+	Con *c;
 
 	switch (i->op) {
 	default:
@@ -355,7 +356,8 @@ emitins(Ins *i, E *e)
 		assert(isreg(i->to));
 		switch (rtype(i->arg[0])) {
 		case RCon:
-			loadcon(&e->fn->con[i->arg[0].val], i->to.val, i->cls, e->f);
+			c = &e->fn->con[i->arg[0].val];
+			loadcon(c, i->to.val, i->cls, e->f);
 			break;
 		case RSlot:
 			i->op = Oload;
@@ -385,6 +387,16 @@ emitins(Ins *i, E *e)
 				"\tadd\t%s, x29, %s\n",
 				rn, s & 0xFFFF, rn, s >> 16, rn, rn
 			);
+		break;
+	case Ocall:
+		if (rtype(i->arg[0]) != RCon)
+			goto Table;
+		c = &e->fn->con[i->arg[0].val];
+		if (c->type != CAddr || c->bits.i)
+			die("invalid call argument");
+		l = str(c->label);
+		p = l[0] == '"' ? "" : T.assym;
+		fprintf(e->f, "\tbl\t%s%s\n", p, l);
 		break;
 	case Osalloc:
 		emitf("sub sp, sp, %0", i, e);

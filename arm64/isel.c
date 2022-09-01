@@ -156,6 +156,22 @@ selcmp(Ref arg[2], int k, Fn *fn)
 	return swap;
 }
 
+static int
+callable(Ref r, Fn *fn)
+{
+	Con *c;
+
+	if (rtype(r) == RTmp)
+		return 1;
+	if (rtype(r) == RCon) {
+		c = &fn->con[r.val];
+		if (c->type == CAddr)
+		if (c->bits.i == 0)
+			return 1;
+	}
+	return 0;
+}
+
 static void
 sel(Ins i, Fn *fn)
 {
@@ -176,6 +192,11 @@ sel(Ins i, Fn *fn)
 			i0->op += cmpop(cc);
 		else
 			i0->op += cc;
+		return;
+	}
+	if (i.op == Ocall)
+	if (callable(i.arg[0], fn)) {
+		emiti(i);
 		return;
 	}
 	if (i.op != Onop) {
