@@ -671,6 +671,8 @@ DoOp:
 		op = Oload;
 	if (op == Talloc1 || op == Talloc2)
 		op = Oalloc;
+	if (op == Ovastart && !curf->vararg)
+		err("cannot use vastart in non-variadic function");
 	if (k >= Ksb)
 		err("size class must be w, l, s, or d");
 	if (op >= NPubOp)
