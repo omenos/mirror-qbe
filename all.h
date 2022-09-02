@@ -419,8 +419,8 @@ extern char debug['Z'+1];
 
 /* util.c */
 typedef enum {
-	Pheap, /* free() necessary */
-	Pfn, /* discarded after processing the function */
+	PHeap, /* free() necessary */
+	PFn, /* discarded after processing the function */
 } Pool;
 
 extern Typ *typ;

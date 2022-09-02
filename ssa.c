@@ -54,7 +54,7 @@ filluse(Fn *fn)
 		tmp[t].phi = 0;
 		tmp[t].width = WFull;
 		if (tmp[t].use == 0)
-			tmp[t].use = vnew(0, sizeof(Use), Pfn);
+			tmp[t].use = vnew(0, sizeof(Use), PFn);
 	}
 	for (b=fn->start; b; b=b->link) {
 		for (p=b->phi; p; p=p->link) {
@@ -183,8 +183,8 @@ phiins(Fn *fn)
 					p->cls = k;
 					p->to = TMP(t);
 					p->link = a->phi;
-					p->arg = vnew(0, sizeof p->arg[0], Pfn);
-					p->blk = vnew(0, sizeof p->blk[0], Pfn);
+					p->arg = vnew(0, sizeof p->arg[0], PFn);
+					p->blk = vnew(0, sizeof p->blk[0], PFn);
 					a->phi = p;
 					if (!bshas(defs, a->id))
 					if (!bshas(u, a->id)) {

@@ -193,7 +193,7 @@ fold(Fn *fn)
 
 	val = emalloc(fn->ntmp * sizeof val[0]);
 	edge = emalloc(fn->nblk * sizeof edge[0]);
-	usewrk = vnew(0, sizeof usewrk[0], Pheap);
+	usewrk = vnew(0, sizeof usewrk[0], PHeap);
 
 	for (t=0; t<fn->ntmp; t++)
 		val[t] = Top;

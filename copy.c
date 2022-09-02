@@ -141,7 +141,7 @@ copy(Fn *fn)
 	bsinit(ts, fn->ntmp);
 	bsinit(as, fn->ntmp);
 	cpy = emalloc(fn->ntmp * sizeof cpy[0]);
-	stk = vnew(10, sizeof stk[0], Pheap);
+	stk = vnew(10, sizeof stk[0], PHeap);
 
 	/* 1. build the copy-of map */
 	for (n=0; n<fn->nblk; n++) {

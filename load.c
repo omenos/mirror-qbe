@@ -332,8 +332,8 @@ def(Slice sl, bits msk, Blk *b, Ins *i, Loc *il)
 	p->to = r;
 	p->cls = sl.cls;
 	p->narg = b->npred;
-	p->arg = vnew(p->narg, sizeof p->arg[0], Pfn);
-	p->blk = vnew(p->narg, sizeof p->blk[0], Pfn);
+	p->arg = vnew(p->narg, sizeof p->arg[0], PFn);
+	p->blk = vnew(p->narg, sizeof p->blk[0], PFn);
 	for (np=0; np<b->npred; ++np) {
 		bp = b->pred[np];
 		if (!bp->s2
@@ -389,7 +389,7 @@ loadopt(Fn *fn)
 	Loc l;
 
 	curf = fn;
-	ilog = vnew(0, sizeof ilog[0], Pheap);
+	ilog = vnew(0, sizeof ilog[0], PHeap);
 	nlog = 0;
 	inum = 0;
 	for (b=fn->start; b; b=b->link)
@@ -404,7 +404,7 @@ loadopt(Fn *fn)
 	qsort(ilog, nlog, sizeof ilog[0], icmp);
 	vgrow(&ilog, nlog+1);
 	ilog[nlog].bid = fn->nblk; /* add a sentinel */
-	ib = vnew(0, sizeof(Ins), Pheap);
+	ib = vnew(0, sizeof(Ins), PHeap);
 	for (ist=ilog, n=0; n<fn->nblk; ++n) {
 		b = fn->rpo[n];
 		for (; ist->bid == n && ist->isphi; ++ist) {

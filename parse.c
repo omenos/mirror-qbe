@@ -277,7 +277,7 @@ lex()
 	if (c == '"') {
 		t = Tstr;
 	Quoted:
-		tokval.str = vnew(2, 1, Pfn);
+		tokval.str = vnew(2, 1, PFn);
 		tokval.str[0] = c;
 		esc = 0;
 		for (i=1;; i++) {
@@ -711,9 +711,9 @@ Ins:
 		phi = alloc(sizeof *phi);
 		phi->to = r;
 		phi->cls = k;
-		phi->arg = vnew(i, sizeof arg[0], Pfn);
+		phi->arg = vnew(i, sizeof arg[0], PFn);
 		memcpy(phi->arg, arg, i * sizeof arg[0]);
-		phi->blk = vnew(i, sizeof blk[0], Pfn);
+		phi->blk = vnew(i, sizeof blk[0], PFn);
 		memcpy(phi->blk, blk, i * sizeof blk[0]);
 		phi->narg = i;
 		*plink = phi;
@@ -833,8 +833,8 @@ parsefn(Lnk *lnk)
 	curf = alloc(sizeof *curf);
 	curf->ntmp = 0;
 	curf->ncon = 1; /* first constant must be 0 */
-	curf->tmp = vnew(curf->ntmp, sizeof curf->tmp[0], Pfn);
-	curf->con = vnew(curf->ncon, sizeof curf->con[0], Pfn);
+	curf->tmp = vnew(curf->ntmp, sizeof curf->tmp[0], PFn);
+	curf->con = vnew(curf->ncon, sizeof curf->con[0], PFn);
 	for (i=0; i<Tmp0; ++i)
 		if (T.fpr0 <= i && i < T.fpr0 + T.nfpr)
 			newtmp(0, Kd, curf);
@@ -862,7 +862,7 @@ parsefn(Lnk *lnk)
 		err("empty function");
 	if (curb->jmp.type == Jxxx)
 		err("last block misses jump");
-	curf->mem = vnew(0, sizeof curf->mem[0], Pfn);
+	curf->mem = vnew(0, sizeof curf->mem[0], PFn);
 	curf->nmem = 0;
 	curf->nblk = nblk;
 	curf->rpo = 0;
@@ -983,7 +983,7 @@ parsetyp()
 		return;
 	}
 	n = 0;
-	ty->fields = vnew(1, sizeof ty->fields[0], Pheap);
+	ty->fields = vnew(1, sizeof ty->fields[0], PHeap);
 	if (t == Tlbrace) {
 		ty->isunion = 1;
 		do {
@@ -1131,7 +1131,7 @@ parse(FILE *f, char *path, void data(Dat *), void func(Fn *))
 	lnum = 1;
 	thead = Txxx;
 	ntyp = 0;
-	typ = vnew(0, sizeof typ[0], Pheap);
+	typ = vnew(0, sizeof typ[0], PHeap);
 	for (;;) {
 		lnk = (Lnk){0};
 		switch (parselnk(&lnk)) {

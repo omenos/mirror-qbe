@@ -116,7 +116,7 @@ vnew(ulong len, size_t esz, Pool pool)
 
 	for (cap=VMin; cap<len; cap*=2)
 		;
-	f = pool == Pheap ? emalloc : alloc;
+	f = pool == PHeap ? emalloc : alloc;
 	v = f(cap * esz + sizeof(Vec));
 	v->mag = VMag;
 	v->cap = cap;
@@ -132,7 +132,7 @@ vfree(void *p)
 
 	v = (Vec *)p - 1;
 	assert(v->mag == VMag);
-	if (v->pool == Pheap) {
+	if (v->pool == PHeap) {
 		v->mag = 0;
 		free(v);
 	}
@@ -172,7 +172,7 @@ intern(char *s)
 	if (n == 1<<(32-IBits))
 		die("interning table overflow");
 	if (n == 0)
-		b->str = vnew(1, sizeof b->str[0], Pheap);
+		b->str = vnew(1, sizeof b->str[0], PHeap);
 	else if ((n & (n-1)) == 0)
 		vgrow(&b->str, n+n);
 

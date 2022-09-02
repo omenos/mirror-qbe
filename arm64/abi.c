@@ -659,8 +659,8 @@ arm64_selvaarg(Fn *fn, Blk *b, Ins *i)
 	*b0->phi = (Phi){
 		.cls = Kl, .to = loc,
 		.narg = 2,
-		.blk = vnew(2, sizeof b0->phi->blk[0], Pfn),
-		.arg = vnew(2, sizeof b0->phi->arg[0], Pfn),
+		.blk = vnew(2, sizeof b0->phi->blk[0], PFn),
+		.arg = vnew(2, sizeof b0->phi->arg[0], PFn),
 	};
 	b0->phi->blk[0] = bstk;
 	b0->phi->blk[1] = breg;
