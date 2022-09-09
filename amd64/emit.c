@@ -166,8 +166,11 @@ emitcon(Con *con, FILE *f)
 	switch (con->type) {
 	case CAddr:
 		l = str(con->label);
-		p = con->local ? T.asloc : l[0] == '"' ? "" : T.assym;
-		fprintf(f, "%s%s", p, l);
+		p = l[0] == '"' ? "" : T.assym;
+		if (con->rel == RelThr)
+			fprintf(f, "%%fs:%s%s@tpoff", p, l);
+		else
+			fprintf(f, "%s%s", p, l);
 		if (con->bits.i)
 			fprintf(f, "%+"PRId64, con->bits.i);
 		break;
@@ -337,7 +340,7 @@ Next:
 		case RCon:
 			off = fn->con[ref.val];
 			emitcon(&off, f);
-			if (off.type == CAddr)
+			if (off.type == CAddr && off.rel != RelThr)
 				fprintf(f, "(%%rip)");
 			break;
 		case RTmp:
@@ -549,7 +552,7 @@ emitfn(Fn *fn, FILE *f)
 	int *r, c, o, n, lbl;
 	uint64_t fs;
 
-	emitlnk(fn->name, &fn->lnk, ".text", f);
+	emitfnlnk(fn->name, &fn->lnk, f);
 	fputs("\tpushq %rbp\n\tmovq %rsp, %rbp\n", f);
 	fs = framesz(fn);
 	if (fs)

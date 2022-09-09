@@ -45,6 +45,7 @@ enum {
 	Tjnz,
 	Tret,
 	Texport,
+	Tthread,
 	Tfunc,
 	Ttype,
 	Tdata,
@@ -99,6 +100,7 @@ static char *kwmap[Ntok] = {
 	[Tjnz] = "jnz",
 	[Tret] = "ret",
 	[Texport] = "export",
+	[Tthread] = "thread",
 	[Tfunc] = "function",
 	[Ttype] = "type",
 	[Tdata] = "data",
@@ -399,30 +401,34 @@ parseref()
 
 	memset(&c, 0, sizeof c);
 	switch (next()) {
+	default:
+		return R;
 	case Ttmp:
 		return tmpref(tokval.str);
 	case Tint:
 		c.type = CBits;
 		c.bits.i = tokval.num;
-		goto Look;
+		break;
 	case Tflts:
 		c.type = CBits;
 		c.bits.s = tokval.flts;
 		c.flt = 1;
-		goto Look;
+		break;
 	case Tfltd:
 		c.type = CBits;
 		c.bits.d = tokval.fltd;
 		c.flt = 2;
-		goto Look;
+		break;
+	case Tthread:
+		c.rel = RelThr;
+		expect(Tglo);
+		/* fall through */
 	case Tglo:
 		c.type = CAddr;
 		c.label = intern(tokval.str);
-	Look:
-		return newcon(&c, curf);
-	default:
-		return R;
+		break;
 	}
+	return newcon(&c, curf);
 }
 
 static int
@@ -1101,6 +1107,9 @@ parselnk(Lnk *lnk)
 		case Texport:
 			lnk->export = 1;
 			break;
+		case Tthread:
+			lnk->thread = 1;
+			break;
 		case Tsection:
 			if (lnk->sec)
 				err("only one section allowed");
@@ -1113,9 +1122,9 @@ parselnk(Lnk *lnk)
 			}
 			break;
 		default:
-			if (haslnk)
-			if (t != Tdata)
-			if (t != Tfunc)
+			if (t == Tfunc && lnk->thread)
+				err("only data may have thread linkage");
+			if (haslnk && t != Tdata && t != Tfunc)
 				err("only data and function have linkage");
 			return t;
 		}
@@ -1244,8 +1253,6 @@ printfn(Fn *fn, FILE *f)
 	Ins *i;
 	uint n;
 
-	if (fn->lnk.export)
-		fprintf(f, "export ");
 	fprintf(f, "function $%s() {\n", fn->name);
 	for (b=fn->start; b; b=b->link) {
 		fprintf(f, "@%s\n", b->name);

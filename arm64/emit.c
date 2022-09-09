@@ -244,7 +244,7 @@ emitf(char *s, Ins *i, E *e)
 }
 
 static void
-loadcon(Con *c, int r, int k, E *e)
+loadaddr(Con *c, char *rn, E *e)
 {
 	static char *ldsym[][2] = {
 		/* arm64 */
@@ -254,7 +254,31 @@ loadcon(Con *c, int r, int k, E *e)
 		[1][0] = "\tadrp\t%s, %s%s@page%s\n",
 		[1][1] = "\tadd\t%s, %s, %s%s@pageoff%s\n",
 	};
-	char *rn, *l, *p, off[32];
+	char *p, *l, off[32];
+
+	if (c->bits.i)
+		/* todo, handle large offsets */
+		sprintf(off, "+%"PRIi64, c->bits.i);
+	else
+		off[0] = 0;
+	l = str(c->label);
+	p = l[0] == '"' ? "" : T.assym;
+	if (c->rel == RelThr) {
+		fprintf(e->f, "\tmrs\t%s, tpidr_el0\n", rn);
+		fprintf(e->f, "\tadd\t%s, %s, #:tprel_hi12:%s%s%s, lsl #12\n",
+			rn, rn, p, l, off);
+		fprintf(e->f, "\tadd\t%s, %s, #:tprel_lo12_nc:%s%s%s\n",
+			rn, rn, p, l, off);
+	} else {
+		fprintf(e->f, ldsym[e->apple][0], rn, p, l, off);
+		fprintf(e->f, ldsym[e->apple][1], rn, rn, p, l, off);
+	}
+}
+
+static void
+loadcon(Con *c, int r, int k, E *e)
+{
+	char *rn;
 	int64_t n;
 	int w, sh;
 
@@ -262,16 +286,7 @@ loadcon(Con *c, int r, int k, E *e)
 	rn = rname(r, k);
 	n = c->bits.i;
 	if (c->type == CAddr) {
-		rn = rname(r, Kl);
-		if (n)
-			/* todo, handle large offsets */
-			sprintf(off, "+%"PRIi64, n);
-		else
-			off[0] = 0;
-		l = str(c->label);
-		p = c->local ? T.asloc : l[0] == '"' ? "" : T.assym;
-		fprintf(e->f, ldsym[e->apple][0], rn, p, l, off);
-		fprintf(e->f, ldsym[e->apple][1], rn, rn, p, l, off);
+		loadaddr(c, rn, e);
 		return;
 	}
 	assert(c->type == CBits);
@@ -471,7 +486,7 @@ emitfn(E *e)
 	Blk *b, *t;
 	Ins *i;
 
-	emitlnk(e->fn->name, &e->fn->lnk, ".text", e->f);
+	emitfnlnk(e->fn->name, &e->fn->lnk, e->f);
 	framelayout(e);
 
 	if (e->fn->vararg && !e->apple) {

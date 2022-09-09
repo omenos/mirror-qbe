@@ -1,17 +1,30 @@
 #include "all.h"
 
+enum {
+	SecText,
+	SecData,
+	SecBss,
+};
+
 void
-emitlnk(char *n, Lnk *l, char *s, FILE *f)
+emitlnk(char *n, Lnk *l, int s, FILE *f)
 {
+	static char *sec[2][3] = {
+		[0][SecText] = ".text",
+		[0][SecData] = ".data",
+		[0][SecBss] = ".bss",
+		[1][SecText] = ".abort \"unreachable\"",
+		[1][SecData] = ".section .tdata,\"awT\"",
+		[1][SecBss] = ".section .tbss,\"awT\"",
+	};
 	char *p;
 
 	if (l->sec) {
 		fprintf(f, ".section %s", l->sec);
 		if (l->secf)
-			fprintf(f, ", %s", l->secf);
-	} else {
-		fputs(s, f);
-	}
+			fprintf(f, ",%s", l->secf);
+	} else
+		fputs(sec[l->thread != 0][s], f);
 	fputc('\n', f);
 	if (l->align)
 		fprintf(f, ".balign %d\n", l->align);
@@ -19,6 +32,12 @@ emitlnk(char *n, Lnk *l, char *s, FILE *f)
 	if (l->export)
 		fprintf(f, ".globl %s%s\n", p, n);
 	fprintf(f, "%s%s:\n", p, n);
+}
+
+void
+emitfnlnk(char *n, Lnk *l, FILE *f)
+{
+	emitlnk(n, l, SecText, f);
 }
 
 void
@@ -39,7 +58,7 @@ emitdat(Dat *d, FILE *f)
 		break;
 	case DEnd:
 		if (zero != -1) {
-			emitlnk(d->name, d->lnk, ".bss", f);
+			emitlnk(d->name, d->lnk, SecBss, f);
 			fprintf(f, "\t.fill %"PRId64",1,0\n", zero);
 		}
 		break;
@@ -51,7 +70,7 @@ emitdat(Dat *d, FILE *f)
 		break;
 	default:
 		if (zero != -1) {
-			emitlnk(d->name, d->lnk, ".data", f);
+			emitlnk(d->name, d->lnk, SecData, f);
 			if (zero > 0)
 				fprintf(f, "\t.fill %"PRId64",1,0\n", zero);
 			zero = -1;
@@ -165,7 +184,7 @@ macho_emitfin(FILE *f)
 	static char *sec[3] = {
 		"__TEXT,__literal4,4byte_literals",
 		"__TEXT,__literal8,8byte_literals",
-		".rodata", /* should not happen */
+		".abort \"unreachable\"",
 	};
 
 	emitfin(f, sec);

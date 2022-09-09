@@ -324,8 +324,11 @@ struct Con {
 		double d;
 		float s;
 	} bits;
+	enum {
+		RelDef,
+		RelThr,
+	} rel;
 	char flt; /* 1 to print as s, 2 to print as d */
-	char local;
 };
 
 typedef struct Addr Addr;
@@ -339,6 +342,7 @@ struct Addr { /* amd64 addressing */
 
 struct Lnk {
 	char export;
+	char thread;
 	char align;
 	char *sec;
 	char *secf;
@@ -536,7 +540,7 @@ void spill(Fn *);
 void rega(Fn *);
 
 /* emit.c */
-void emitlnk(char *, Lnk *, char *, FILE *);
+void emitfnlnk(char *, Lnk *, FILE *);
 void emitdat(Dat *, FILE *);
 int stashbits(void *, int);
 void elf_emitfnfin(char *, FILE *);

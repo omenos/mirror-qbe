@@ -358,9 +358,9 @@ newcon(Con *c0, Fn *fn)
 	for (i=0; i<fn->ncon; i++) {
 		c1 = &fn->con[i];
 		if (c0->type == c1->type
-		&& c0->bits.i == c1->bits.i
 		&& c0->label == c1->label
-		&& c0->local == c1->local)
+		&& c0->bits.i == c1->bits.i
+		&& c0->rel == c1->rel)
 			return CON(i);
 	}
 	vgrow(&fn->con, ++fn->ncon);
