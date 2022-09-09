@@ -420,7 +420,7 @@ parseref()
 		c.flt = 2;
 		break;
 	case Tthread:
-		c.rel = RelThr;
+		c.reloc = RelThr;
 		expect(Tglo);
 		/* fall through */
 	case Tglo:

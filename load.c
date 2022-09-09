@@ -155,7 +155,7 @@ load(Slice sl, bits msk, Loc *l)
 			c.type = CAddr;
 			c.label = a->label;
 			c.bits.i = a->offset;
-			c.rel = a->rel;
+			c.reloc = a->reloc;
 			r = newcon(&c, curf);
 			break;
 		}

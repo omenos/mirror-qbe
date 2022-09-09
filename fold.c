@@ -346,12 +346,12 @@ foldint(Con *res, int op, int w, Con *cl, Con *cr)
 			if (cr->type == CAddr)
 				return 1;
 			lab = cl->label;
-			rel = cl->rel;
+			rel = cl->reloc;
 			typ = CAddr;
 		}
 		else if (cr->type == CAddr) {
 			lab = cr->label;
-			rel = cr->rel;
+			rel = cr->reloc;
 			typ = CAddr;
 		}
 	}
@@ -359,7 +359,7 @@ foldint(Con *res, int op, int w, Con *cl, Con *cr)
 		if (cl->type == CAddr) {
 			if (cr->type != CAddr) {
 				lab = cl->label;
-				rel = cl->rel;
+				rel = cl->reloc;
 				typ = CAddr;
 			} else if (cl->label != cr->label)
 				return 1;
@@ -408,7 +408,7 @@ foldint(Con *res, int op, int w, Con *cl, Con *cr)
 		x = l.u;
 		if (cl->type == CAddr) {
 			lab = cl->label;
-			rel = cl->rel;
+			rel = cl->reloc;
 			typ = CAddr;
 		}
 		break;
@@ -462,7 +462,7 @@ foldint(Con *res, int op, int w, Con *cl, Con *cr)
 		else
 			die("unreachable");
 	}
-	*res = (Con){.type=typ, .label=lab, .rel=rel, .bits={.i=x}};
+	*res = (Con){.type=typ, .label=lab, .reloc=rel, .bits={.i=x}};
 	return 0;
 }
 

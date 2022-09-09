@@ -282,7 +282,7 @@ struct Alias {
 	Ref base;
 	uint32_t label;
 	int64_t offset;
-	int rel;
+	int reloc;
 	Alias *slot;
 };
 
@@ -328,7 +328,7 @@ struct Con {
 	enum {
 		RelDef,
 		RelThr,
-	} rel;
+	} reloc;
 	char flt; /* 1 to print as s, 2 to print as d */
 };
 

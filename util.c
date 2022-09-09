@@ -360,7 +360,7 @@ newcon(Con *c0, Fn *fn)
 		if (c0->type == c1->type
 		&& c0->label == c1->label
 		&& c0->bits.i == c1->bits.i
-		&& c0->rel == c1->rel)
+		&& c0->reloc == c1->reloc)
 			return CON(i);
 	}
 	vgrow(&fn->con, ++fn->ncon);

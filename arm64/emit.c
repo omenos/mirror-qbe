@@ -263,7 +263,7 @@ loadaddr(Con *c, char *rn, E *e)
 		off[0] = 0;
 	l = str(c->label);
 	p = l[0] == '"' ? "" : T.assym;
-	if (c->rel == RelThr) {
+	if (c->reloc == RelThr) {
 		fprintf(e->f, "\tmrs\t%s, tpidr_el0\n", rn);
 		fprintf(e->f, "\tadd\t%s, %s, #:tprel_hi12:%s%s%s, lsl #12\n",
 			rn, rn, p, l, off);

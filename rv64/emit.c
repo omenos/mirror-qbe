@@ -129,7 +129,7 @@ slot(int s, Fn *fn)
 static void
 emitaddr(Con *c, FILE *f)
 {
-	assert(c->rel == RelDef);
+	assert(c->reloc == RelDef);
 	fputs(str(c->label), f);
 	if (c->bits.i)
 		fprintf(f, "+%"PRIi64, c->bits.i);
@@ -229,7 +229,7 @@ loadaddr(Con *c, char *rn, FILE *f)
 {
 	char off[32];
 
-	if (c->rel == RelThr) {
+	if (c->reloc == RelThr) {
 		if (c->bits.i)
 			sprintf(off, "+%"PRIi64, c->bits.i);
 		else
@@ -279,7 +279,7 @@ fixmem(Ref *pr, Fn *fn, FILE *f)
 	r = *pr;
 	if (rtype(r) == RCon) {
 		c = &fn->con[r.val];
-		if (c->type == CAddr && c->rel == RelThr) {
+		if (c->type == CAddr && c->reloc == RelThr) {
 			loadcon(c, T6, Kl, f);
 			*pr = TMP(T6);
 		}
