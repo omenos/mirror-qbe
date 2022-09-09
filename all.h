@@ -282,6 +282,7 @@ struct Alias {
 	Ref base;
 	uint32_t label;
 	int64_t offset;
+	int rel;
 	Alias *slot;
 };
 

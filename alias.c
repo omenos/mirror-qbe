@@ -19,6 +19,7 @@ getalias(Alias *a, Ref r, Fn *fn)
 		if (c->type == CAddr) {
 			a->type = ASym;
 			a->label = c->label;
+			a->rel = c->rel;
 		} else
 			a->type = ACon;
 		a->offset = c->bits.i;
