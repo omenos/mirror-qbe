@@ -7,7 +7,6 @@ struct E {
 	Fn *fn;
 	uint64_t frame;
 	uint padding;
-	int apple;
 };
 
 #define CMP(X) \
@@ -145,7 +144,7 @@ slot(int s, E *e)
 	if (s == -1)
 		return 16 + e->frame;
 	if (s < 0) {
-		if (e->fn->vararg && !e->apple)
+		if (e->fn->vararg && !T.apple)
 			return 16 + e->frame + 192 - (s+2);
 		else
 			return 16 + e->frame - (s+2);
@@ -270,8 +269,8 @@ loadaddr(Con *c, char *rn, E *e)
 		fprintf(e->f, "\tadd\t%s, %s, #:tprel_lo12_nc:%s%s%s\n",
 			rn, rn, p, l, off);
 	} else {
-		fprintf(e->f, ldsym[e->apple][0], rn, p, l, off);
-		fprintf(e->f, ldsym[e->apple][1], rn, rn, p, l, off);
+		fprintf(e->f, ldsym[T.apple != 0][0], rn, p, l, off);
+		fprintf(e->f, ldsym[T.apple != 0][1], rn, rn, p, l, off);
 	}
 }
 
@@ -472,8 +471,8 @@ framelayout(E *e)
 
 */
 
-static void
-emitfn(E *e)
+void
+arm64_emitfn(Fn *fn, FILE *out)
 {
 	static char *ctoa[] = {
 	#define X(c, s) [c] = s,
@@ -485,11 +484,15 @@ emitfn(E *e)
 	uint64_t o;
 	Blk *b, *t;
 	Ins *i;
+	E *e;
 
+	e = &(E){.f = out, .fn = fn};
+	if (T.apple)
+		e->fn->lnk.align = 4;
 	emitfnlnk(e->fn->name, &e->fn->lnk, e->f);
 	framelayout(e);
 
-	if (e->fn->vararg && !e->apple) {
+	if (e->fn->vararg && !T.apple) {
 		for (n=7; n>=0; n--)
 			fprintf(e->f, "\tstr\tq%d, [sp, -16]!\n", n);
 		for (n=7; n>=0; n-=2)
@@ -551,7 +554,7 @@ emitfn(E *e)
 			if (e->fn->dynalloc)
 				fputs("\tmov sp, x29\n", e->f);
 			o = e->frame + 16;
-			if (e->fn->vararg && !e->apple)
+			if (e->fn->vararg && !T.apple)
 				o += 192;
 			if (o <= 504)
 				fprintf(e->f,
@@ -609,18 +612,4 @@ emitfn(E *e)
 		}
 	}
 	id0 += e->fn->nblk;
-}
-
-void
-arm64_emitfn(Fn *fn, FILE *out)
-{
-	emitfn(&(E){.f = out, .fn = fn, .apple = 0});
-	elf_emitfnfin(fn->name, out);
-}
-
-void
-apple_emitfn(Fn *fn, FILE *out)
-{
-	fn->lnk.align = 4;
-	emitfn(&(E){.f = out, .fn = fn, .apple = 1});
 }

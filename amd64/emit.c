@@ -538,8 +538,8 @@ framesz(Fn *fn)
 	return 4*f + 8*o + 176*fn->vararg;
 }
 
-static void
-emitfn(Fn *fn, FILE *f)
+void
+amd64_emitfn(Fn *fn, FILE *f)
 {
 	static char *ctoa[] = {
 	#define X(c, s) [c] = s,
@@ -620,17 +620,6 @@ emitfn(Fn *fn, FILE *f)
 		}
 	}
 	id0 += fn->nblk;
-}
-
-void
-amd64_sysv_emitfn(Fn *fn, FILE *f)
-{
-	emitfn(fn, f);
-	elf_emitfnfin(fn->name, f);
-}
-
-void
-amd64_apple_emitfn(Fn *fn, FILE *f)
-{
-	emitfn(fn, f);
+	if (!T.apple)
+		elf_emitfnfin(fn->name, f);
 }

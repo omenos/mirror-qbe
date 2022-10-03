@@ -38,12 +38,12 @@ arm64_memargs(int op)
 	.argregs = arm64_argregs, \
 	.memargs = arm64_memargs, \
 	.isel = arm64_isel, \
+	.abi1 = arm64_abi, \
+	.emitfn = arm64_emitfn, \
 
 Target T_arm64 = {
 	.name = "arm64",
 	.abi0 = elimsb,
-	.abi1 = arm64_abi,
-	.emitfn = arm64_emitfn,
 	.emitfin = elf_emitfin,
 	.asloc = ".L",
 	ARM64_COMMON
@@ -51,9 +51,8 @@ Target T_arm64 = {
 
 Target T_arm64_apple = {
 	.name = "arm64_apple",
+	.apple = 1,
 	.abi0 = apple_extsb,
-	.abi1 = apple_abi,
-	.emitfn = apple_emitfn,
 	.emitfin = macho_emitfin,
 	.asloc = "L",
 	.assym = "_",

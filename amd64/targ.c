@@ -27,10 +27,10 @@ amd64_memargs(int op)
 	.abi0 = elimsb, \
 	.abi1 = amd64_sysv_abi, \
 	.isel = amd64_isel, \
+	.emitfn = amd64_emitfn, \
 
 Target T_amd64_sysv = {
 	.name = "amd64_sysv",
-	.emitfn = amd64_sysv_emitfn,
 	.emitfin = elf_emitfin,
 	.asloc = ".L",
 	AMD64_COMMON
@@ -38,7 +38,7 @@ Target T_amd64_sysv = {
 
 Target T_amd64_apple = {
 	.name = "amd64_apple",
-	.emitfn = amd64_apple_emitfn,
+	.apple = 1,
 	.emitfin = macho_emitfin,
 	.asloc = "L",
 	.assym = "_",

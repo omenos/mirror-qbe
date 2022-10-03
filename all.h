@@ -41,6 +41,7 @@ enum {
 
 struct Target {
 	char name[16];
+	char apple;
 	int gpr0;   /* first general purpose reg */
 	int ngpr;
 	int fpr0;   /* first floating point reg */

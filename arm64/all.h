@@ -29,7 +29,6 @@ bits arm64_retregs(Ref, int[2]);
 bits arm64_argregs(Ref, int[2]);
 void arm64_abi(Fn *);
 void apple_extsb(Fn *);
-void apple_abi(Fn *);
 
 /* isel.c */
 int arm64_logimm(uint64_t, int);
@@ -37,4 +36,3 @@ void arm64_isel(Fn *);
 
 /* emit.c */
 void arm64_emitfn(Fn *, FILE *);
-void apple_emitfn(Fn *, FILE *);

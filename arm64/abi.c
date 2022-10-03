@@ -10,12 +10,6 @@ enum {
 	Cptr = 2, /* replaced by a pointer */
 };
 
-struct Abi {
-	void (*vastart)(Fn *, Params, Ref);
-	void (*vaarg)(Fn *, Blk *, Ins *);
-	int apple;
-};
-
 struct Class {
 	char class;
 	char ishfa;
@@ -215,7 +209,7 @@ selret(Blk *b, Fn *fn)
 }
 
 static int
-argsclass(Ins *i0, Ins *i1, Class *carg, int apple)
+argsclass(Ins *i0, Ins *i1, Class *carg)
 {
 	int va, envc, ngp, nfp, *gp, *fp;
 	Class *c;
@@ -244,7 +238,7 @@ argsclass(Ins *i0, Ins *i1, Class *carg, int apple)
 		case Opar:
 		case Oarg:
 			c->size = 8;
-			if (apple && !KWIDE(i->cls))
+			if (T.apple && !KWIDE(i->cls))
 				c->size = 4;
 		Scalar:
 			c->align = c->size;
@@ -290,7 +284,7 @@ argsclass(Ins *i0, Ins *i1, Class *carg, int apple)
 			envc = 1;
 			break;
 		case Oargv:
-			va = apple != 0;
+			va = T.apple != 0;
 			break;
 		default:
 			die("unreachable");
@@ -367,7 +361,7 @@ align(uint x, uint al)
 }
 
 static void
-selcall(Fn *fn, Ins *i0, Ins *i1, Insl **ilp, int apple)
+selcall(Fn *fn, Ins *i0, Ins *i1, Insl **ilp)
 {
 	Ins *i;
 	Class *ca, *c, cr;
@@ -376,7 +370,7 @@ selcall(Fn *fn, Ins *i0, Ins *i1, Insl **ilp, int apple)
 	Ref r, rstk, tmp[4];
 
 	ca = alloc((i1-i0) * sizeof ca[0]);
-	cty = argsclass(i0, i1, ca, apple);
+	cty = argsclass(i0, i1, ca);
 
 	stk = 0;
 	for (i=i0, c=ca; i<i1; i++, c++) {
@@ -468,7 +462,7 @@ selcall(Fn *fn, Ins *i0, Ins *i1, Insl **ilp, int apple)
 }
 
 static Params
-selpar(Fn *fn, Ins *i0, Ins *i1, int apple)
+selpar(Fn *fn, Ins *i0, Ins *i1)
 {
 	Class *ca, *c, cr;
 	Insl *il;
@@ -480,7 +474,7 @@ selpar(Fn *fn, Ins *i0, Ins *i1, int apple)
 	ca = alloc((i1-i0) * sizeof ca[0]);
 	curi = &insb[NIns];
 
-	cty = argsclass(i0, i1, ca, apple);
+	cty = argsclass(i0, i1, ca);
 	fn->reg = arm64_argregs(CALL(cty), 0);
 
 	il = 0;
@@ -724,8 +718,8 @@ arm64_selvastart(Fn *fn, Params p, Ref ap)
 	emit(Oadd, Kl, r0, ap, getcon(28, fn));
 }
 
-static void
-abi(Fn *fn, Abi abi)
+void
+arm64_abi(Fn *fn)
 {
 	Blk *b;
 	Ins *i, *i0, *ip;
@@ -740,7 +734,7 @@ abi(Fn *fn, Abi abi)
 	for (b=fn->start, i=b->ins; i<&b->ins[b->nins]; i++)
 		if (!ispar(i->op))
 			break;
-	p = selpar(fn, b->ins, i, abi.apple);
+	p = selpar(fn, b->ins, i);
 	n = b->nins - (i - b->ins) + (&insb[NIns] - curi);
 	i0 = alloc(n * sizeof(Ins));
 	ip = icpy(ip = i0, curi, &insb[NIns] - curi);
@@ -767,14 +761,20 @@ abi(Fn *fn, Abi abi)
 				for (i0=i; i0>b->ins; i0--)
 					if (!isarg((i0-1)->op))
 						break;
-				selcall(fn, i0, i, &il, abi.apple);
+				selcall(fn, i0, i, &il);
 				i = i0;
 				break;
 			case Ovastart:
-				abi.vastart(fn, p, i->arg[0]);
+				if (T.apple)
+					apple_selvastart(fn, p, i->arg[0]);
+				else
+					arm64_selvastart(fn, p, i->arg[0]);
 				break;
 			case Ovaarg:
-				abi.vaarg(fn, b, i);
+				if (T.apple)
+					apple_selvaarg(fn, b, i);
+				else
+					arm64_selvaarg(fn, b, i);
 				break;
 			case Oarg:
 			case Oargc:
@@ -791,26 +791,6 @@ abi(Fn *fn, Abi abi)
 		fprintf(stderr, "\n> After ABI lowering:\n");
 		printfn(fn, stderr);
 	}
-}
-
-void
-arm64_abi(Fn *fn)
-{
-	abi(fn, (Abi){
-		arm64_selvastart,
-		arm64_selvaarg,
-		0
-	});
-}
-
-void
-apple_abi(Fn *fn)
-{
-	abi(fn, (Abi){
-		apple_selvastart,
-		apple_selvaarg,
-		1
-	});
 }
 
 /* abi0 for apple target; introduces
