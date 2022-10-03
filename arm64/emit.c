@@ -245,33 +245,50 @@ emitf(char *s, Ins *i, E *e)
 static void
 loadaddr(Con *c, char *rn, E *e)
 {
-	static char *ldsym[][2] = {
-		/* arm64 */
-		[0][0] = "\tadrp\t%s, %s%s%s\n",
-		[0][1] = "\tadd\t%s, %s, #:lo12:%s%s%s\n",
-		/* apple */
-		[1][0] = "\tadrp\t%s, %s%s@page%s\n",
-		[1][1] = "\tadd\t%s, %s, %s%s@pageoff%s\n",
-	};
-	char *p, *l, off[32];
+	char *p, *l, *s;
 
-	if (c->bits.i)
-		/* todo, handle large offsets */
-		sprintf(off, "+%"PRIi64, c->bits.i);
-	else
-		off[0] = 0;
+	switch (c->reloc) {
+	default:
+		die("unreachable");
+	case RelDef:
+		if (T.apple)
+			s = "\tadrp\tR, S@pageO\n"
+			    "\tadd\tR, R, S@pageoffO\n";
+		else
+			s = "\tadrp\tR, SO\n"
+			    "\tadd\tR, R, #:lo12:SO\n";
+		break;
+	case RelThr:
+		if (T.apple)
+			s = "\tadrp\tR, S@tlvppage\n"
+			    "\tldr\tR, [R, S@tlvppageoff]\n";
+		else
+			s = "\tmrs\tR, tpidr_el0\n"
+			    "\tadd\tR, R, #:tprel_hi12:SO, lsl #12\n"
+			    "\tadd\tR, R, #:tprel_lo12_nc:SO\n";
+		break;
+	}
+
 	l = str(c->label);
 	p = l[0] == '"' ? "" : T.assym;
-	if (c->reloc == RelThr) {
-		fprintf(e->f, "\tmrs\t%s, tpidr_el0\n", rn);
-		fprintf(e->f, "\tadd\t%s, %s, #:tprel_hi12:%s%s%s, lsl #12\n",
-			rn, rn, p, l, off);
-		fprintf(e->f, "\tadd\t%s, %s, #:tprel_lo12_nc:%s%s%s\n",
-			rn, rn, p, l, off);
-	} else {
-		fprintf(e->f, ldsym[T.apple != 0][0], rn, p, l, off);
-		fprintf(e->f, ldsym[T.apple != 0][1], rn, rn, p, l, off);
-	}
+	for (; *s; s++)
+		switch (*s) {
+		default:
+			fputc(*s, e->f);
+			break;
+		case 'R':
+			fputs(rn, e->f);
+			break;
+		case 'S':
+			fputs(p, e->f);
+			fputs(l, e->f);
+			break;
+		case 'O':
+			if (c->bits.i)
+				/* todo, handle large offsets */
+				fprintf(e->f, "+%"PRIi64, c->bits.i);
+			break;
+		}
 }
 
 static void

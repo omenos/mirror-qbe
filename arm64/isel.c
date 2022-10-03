@@ -70,20 +70,45 @@ static void
 fixarg(Ref *pr, int k, int phi, Fn *fn)
 {
 	char buf[32];
-	Ref r0, r1, r2;
+	Ref r0, r1, r2, r3;
 	int s, n;
-	Con *c;
+	Con *c, cc;
 
 	r0 = *pr;
 	switch (rtype(r0)) {
 	case RCon:
+		c = &fn->con[r0.val];
+		if (T.apple
+		&& c->type == CAddr
+		&& c->reloc == RelThr) {
+			r1 = newtmp("isel", Kl, fn);
+			*pr = r1;
+			if (c->bits.i) {
+				r2 = newtmp("isel", Kl, fn);
+				cc = (Con){.type = CBits};
+				cc.bits.i = c->bits.i;
+				r3 = newcon(&cc, fn);
+				emit(Oadd, Kl, r1, r2, r3);
+				r1 = r2;
+			}
+			emit(Ocopy, Kl, r1, TMP(R0), R);
+			r1 = newtmp("isel", Kl, fn);
+			r2 = newtmp("isel", Kl, fn);
+			emit(Ocall, 0, R, r1, CALL(33));
+			emit(Ocopy, Kl, TMP(R0), r2, R);
+			emit(Oload, Kl, r1, r2, R);
+			cc = *c;
+			cc.bits.i = 0;
+			r3 = newcon(&cc, fn);
+			emit(Ocopy, Kl, r2, r3, R);
+			break;
+		}
 		if (KBASE(k) == 0 && phi)
 			return;
 		r1 = newtmp("isel", k, fn);
 		if (KBASE(k) == 0) {
 			emit(Ocopy, k, r1, r0, R);
 		} else {
-			c = &fn->con[r0.val];
 			n = stashbits(&c->bits, KWIDE(k) ? 8 : 4);
 			vgrow(&fn->con, ++fn->ncon);
 			c = &fn->con[fn->ncon-1];

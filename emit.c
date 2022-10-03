@@ -17,8 +17,27 @@ emitlnk(char *n, Lnk *l, int s, FILE *f)
 		[1][SecData] = ".section .tdata,\"awT\"",
 		[1][SecBss] = ".section .tbss,\"awT\"",
 	};
-	char *p;
+	char *pfx, *sfx;
 
+	pfx = n[0] == '"' ? "" : T.assym;
+	sfx = "";
+	if (T.apple && l->thread) {
+		l->sec = "__DATA";
+		l->secf = "__thread_data,thread_local_regular";
+		sfx = "$tlv$init";
+		fputs(
+			".section __DATA,__thread_vars,"
+			"thread_local_variables\n",
+			f
+		);
+		fprintf(f, "%s%s:\n", pfx, n);
+		fprintf(f,
+			"\t.quad __tlv_bootstrap\n"
+			"\t.quad 0\n"
+			"\t.quad %s%s%s\n\n",
+			pfx, n, sfx
+		);
+	}
 	if (l->sec) {
 		fprintf(f, ".section %s", l->sec);
 		if (l->secf)
@@ -28,10 +47,9 @@ emitlnk(char *n, Lnk *l, int s, FILE *f)
 	fputc('\n', f);
 	if (l->align)
 		fprintf(f, ".balign %d\n", l->align);
-	p = n[0] == '"' ? "" : T.assym;
 	if (l->export)
-		fprintf(f, ".globl %s%s\n", p, n);
-	fprintf(f, "%s%s:\n", p, n);
+		fprintf(f, ".globl %s%s\n", pfx, n);
+	fprintf(f, "%s%s%s:\n", pfx, n, sfx);
 }
 
 void
