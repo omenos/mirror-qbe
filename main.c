@@ -40,11 +40,11 @@ data(Dat *d)
 {
 	if (dbg)
 		return;
+	emitdat(d, outf);
 	if (d->type == DEnd) {
 		fputs("/* end data */\n\n", outf);
 		freeall();
 	}
-	emitdat(d, outf);
 }
 
 static void
