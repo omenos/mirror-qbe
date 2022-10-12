@@ -70,9 +70,9 @@ static void
 fixarg(Ref *pr, int k, int phi, Fn *fn)
 {
 	char buf[32];
+	Con *c, cc;
 	Ref r0, r1, r2, r3;
 	int s, n;
-	Con *c, cc;
 
 	r0 = *pr;
 	switch (rtype(r0)) {

@@ -167,9 +167,12 @@ emitcon(Con *con, FILE *f)
 	case CAddr:
 		l = str(con->label);
 		p = l[0] == '"' ? "" : T.assym;
-		if (con->reloc == RelThr)
-			fprintf(f, "%%fs:%s%s@tpoff", p, l);
-		else
+		if (con->reloc == RelThr) {
+			if (T.apple)
+				fprintf(f, "%s%s@TLVP", p, l);
+			else
+				fprintf(f, "%%fs:%s%s@tpoff", p, l);
+		} else
 			fprintf(f, "%s%s", p, l);
 		if (con->bits.i)
 			fprintf(f, "%+"PRId64, con->bits.i);
@@ -340,7 +343,8 @@ Next:
 		case RCon:
 			off = fn->con[ref.val];
 			emitcon(&off, f);
-			if (off.type == CAddr && off.reloc != RelThr)
+			if (off.type == CAddr)
+			if (off.reloc != RelThr || T.apple)
 				fprintf(f, "(%%rip)");
 			break;
 		case RTmp:

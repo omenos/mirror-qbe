@@ -1,0 +1,30 @@
+thread data $i = align 4 {w 42}
+data $fmt = align 1 {b "i%d==%d\n", b 0}
+
+export
+function w $main() {
+@start
+	%pthr =l alloc8 8
+	%rval =l alloc8 8
+	call $pthread_create(l %pthr, l 0, l $thread, l 0)
+	%t =l load %pthr
+	call $pthread_join(l %t, l %rval)
+	%i0 =w loadw thread $i
+	call $printf(l $fmt, ..., w 0, w %i0)
+	%i1 =w load %rval
+	call $printf(l $fmt, ..., w 1, w %i1)
+	ret 0
+}
+
+function l $thread(l %arg) {
+@start
+	%i3 =l add thread $i, 3
+	storeb 24, %i3
+	%ret =l loadsw thread $i
+	ret %ret
+}
+
+# >>> output
+# i0==42
+# i1==402653226
+# <<<
