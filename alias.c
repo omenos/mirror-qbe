@@ -43,7 +43,7 @@ alias(Ref p, int sp, Ref q, int sq, int *delta, Fn *fn)
 		/* if both are offsets of the same
 		 * stack slot, they alias iif they
 		 * overlap */
-		if (req(ap.base, aq.base) && ovlap)
+		if (ap.base == aq.base && ovlap)
 			return MustAlias;
 		return NoAlias;
 	}
@@ -60,7 +60,7 @@ alias(Ref p, int sp, Ref q, int sq, int *delta, Fn *fn)
 	}
 
 	if ((ap.type == ACon && aq.type == ACon)
-	|| (ap.type == aq.type && req(ap.base, aq.base))) {
+	|| (ap.type == aq.type && ap.base == aq.base)) {
 		assert(ap.type == ACon || ap.type == AUnk);
 		/* if they have the same base, we
 		 * can rely on the offsets only */
@@ -122,7 +122,7 @@ fillalias(Fn *fn)
 			a = &fn->tmp[p->to.val].alias;
 			assert(a->type == ABot);
 			a->type = AUnk;
-			a->base = p->to;
+			a->base = p->to.val;
 			a->offset = 0;
 			a->slot = 0;
 		}
@@ -139,7 +139,7 @@ fillalias(Fn *fn)
 					a->type = AUnk;
 					a->slot = 0;
 				}
-				a->base = i->to;
+				a->base = i->to.val;
 				a->offset = 0;
 			}
 			if (i->op == Ocopy) {

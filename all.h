@@ -280,7 +280,7 @@ struct Alias {
 		AUnk = 6,
 	#define astack(t) ((t) & 1)
 	} type;
-	Ref base;
+	int base;
 	uint32_t label;
 	int64_t offset;
 	int reloc;

@@ -144,7 +144,7 @@ load(Slice sl, bits msk, Loc *l)
 		case ALoc:
 		case AEsc:
 		case AUnk:
-			r = a->base;
+			r = TMP(a->base);
 			if (!a->offset)
 				break;
 			r1 = getcon(a->offset, curf);
@@ -178,7 +178,7 @@ killsl(Ref r, Slice sl)
 	default:   die("unreachable");
 	case ALoc:
 	case AEsc:
-	case AUnk: return req(a->base, r);
+	case AUnk: return req(TMP(a->base), r);
 	case ACon:
 	case ASym: return 0;
 	}
