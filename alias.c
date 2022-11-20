@@ -108,6 +108,7 @@ void
 fillalias(Fn *fn)
 {
 	uint n, m;
+	int t;
 	int64_t x;
 	bits w;
 	Blk *b;
@@ -116,6 +117,8 @@ fillalias(Fn *fn)
 	Con *c;
 	Alias *a, a0, a1;
 
+	for (t=0; t<fn->ntmp; t++)
+		fn->tmp[t].alias.type = ABot;
 	for (n=0; n<fn->nblk; ++n) {
 		b = fn->rpo[n];
 		for (p=b->phi; p; p=p->link) {
