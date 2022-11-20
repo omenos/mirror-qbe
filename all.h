@@ -518,6 +518,7 @@ void memopt(Fn *);
 
 /* alias.c */
 void fillalias(Fn *);
+void getalias(Alias *, Ref, Fn *);
 int alias(Ref, int, Ref, int, int *, Fn *);
 int escapes(Ref, Fn *);
 

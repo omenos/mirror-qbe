@@ -1,6 +1,6 @@
 #include "all.h"
 
-static void
+void
 getalias(Alias *a, Ref r, Fn *fn)
 {
 	Con *c;
