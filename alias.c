@@ -18,8 +18,8 @@ getalias(Alias *a, Ref r, Fn *fn)
 		c = &fn->con[r.val];
 		if (c->type == CAddr) {
 			a->type = ASym;
-			a->label = c->label;
-			a->reloc = c->reloc;
+			a->u.sym.label = c->label;
+			a->u.sym.con = r.val;
 		} else
 			a->type = ACon;
 		a->offset = c->bits.i;
@@ -52,7 +52,7 @@ alias(Ref p, int sp, Ref q, int sq, int *delta, Fn *fn)
 		/* they conservatively alias if the
 		 * symbols are different, or they
 		 * alias for sure if they overlap */
-		if (ap.label != aq.label)
+		if (ap.u.sym.label != aq.u.sym.label)
 			return MayAlias;
 		if (ovlap)
 			return MustAlias;
@@ -108,9 +108,12 @@ void
 fillalias(Fn *fn)
 {
 	uint n, m;
+	int64_t x;
+	bits w;
 	Blk *b;
 	Phi *p;
 	Ins *i;
+	Con *c;
 	Alias *a, a0, a1;
 
 	for (n=0; n<fn->nblk; ++n) {
@@ -135,6 +138,14 @@ fillalias(Fn *fn)
 				if (Oalloc <= i->op && i->op <= Oalloc1) {
 					a->type = ALoc;
 					a->slot = a;
+					a->u.loc.sz = -1;
+					if (rtype(i->arg[0]) == RCon) {
+						c = &fn->con[i->arg[0].val];
+						x = c->bits.i;
+						if (c->type == CBits)
+						if (0 <= x && x <= NBit)
+							a->u.loc.sz = x;
+					}
 				} else {
 					a->type = AUnk;
 					a->slot = 0;
@@ -164,6 +175,19 @@ fillalias(Fn *fn)
 				if (!isstore(i->op))
 				if (i->op != Oargc)
 					esc(i->arg[1], fn);
+			}
+			if (isstore(i->op))
+			if (rtype(i->arg[1]) == RTmp) {
+				a = &fn->tmp[i->arg[1].val].alias;
+				if (a->slot) {
+					assert(astack(a->type));
+					x = a->offset;
+					if (0 <= x && x < NBit) {
+						w = BIT(storesz(i)) - 1;
+						a->slot->u.loc.m |= w << x;
+					} else
+						a->slot->u.loc.sz = -1;
+				}
 			}
 		}
 		esc(b->jmp.arg, fn);

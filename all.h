@@ -281,9 +281,17 @@ struct Alias {
 	#define astack(t) ((t) & 1)
 	} type;
 	int base;
-	uint32_t label;
 	int64_t offset;
-	int reloc;
+	union {
+		struct {
+			uint32_t label;
+			int con;
+		} sym;
+		struct {
+			int sz; /* -1 if > NBit */
+			bits m;
+		} loc;
+	} u;
 	Alias *slot;
 };
 
