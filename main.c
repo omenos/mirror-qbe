@@ -62,13 +62,16 @@ func(Fn *fn)
 	fillrpo(fn);
 	fillpreds(fn);
 	filluse(fn);
-	memopt(fn);
+	promote(fn);
 	filluse(fn);
 	ssa(fn);
 	filluse(fn);
 	ssacheck(fn);
 	fillalias(fn);
 	loadopt(fn);
+	filluse(fn);
+	fillalias(fn);
+	coalesce(fn);
 	filluse(fn);
 	ssacheck(fn);
 	copy(fn);

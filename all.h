@@ -514,7 +514,8 @@ void fillloop(Fn *);
 void simpljmp(Fn *);
 
 /* mem.c */
-void memopt(Fn *);
+void promote(Fn *);
+void coalesce(Fn *);
 
 /* alias.c */
 void fillalias(Fn *);
