@@ -47,6 +47,7 @@ filluse(Fn *fn)
 	/* todo, is this the correct file? */
 	tmp = fn->tmp;
 	for (t=Tmp0; t<fn->ntmp; t++) {
+		tmp[t].ins = 0;
 		tmp[t].bid = -1u;
 		tmp[t].ndef = 0;
 		tmp[t].nuse = 0;
@@ -88,6 +89,7 @@ filluse(Fn *fn)
 					w = WFull;
 				t = i->to.val;
 				tmp[t].width = w;
+				tmp[t].ins = i;
 				tmp[t].bid = b->id;
 				tmp[t].ndef++;
 				tmp[t].cls = i->cls;

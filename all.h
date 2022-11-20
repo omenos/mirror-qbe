@@ -289,6 +289,7 @@ struct Alias {
 
 struct Tmp {
 	char name[NString];
+	Ins *ins;
 	Use *use;
 	uint ndef, nuse;
 	uint bid; /* id of a defining block */
