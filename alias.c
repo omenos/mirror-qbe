@@ -162,6 +162,7 @@ fillalias(Fn *fn)
 				if (!isload(i->op))
 					esc(i->arg[0], fn);
 				if (!isstore(i->op))
+				if (i->op != Oargc)
 					esc(i->arg[1], fn);
 			}
 		}
