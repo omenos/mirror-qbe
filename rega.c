@@ -359,8 +359,6 @@ doblk(Blk *b, RMap *cur)
 	Mem *m;
 	Ref *ra[4];
 
-	for (r=0; bsiter(b->out, &r) && r<Tmp0; r++)
-		radd(cur, r, r);
 	if (rtype(b->jmp.arg) == RTmp)
 		b->jmp.arg = ralloc(cur, b->jmp.arg.val);
 	curi = &insb[NIns];
@@ -534,6 +532,8 @@ rega(Fn *fn)
 				rl[j] = t;
 			}
 		}
+		for (r=0; bsiter(b->out, &r) && r<Tmp0; r++)
+			radd(&cur, r, r);
 		for (j=0; j<x; j++)
 			ralloctry(&cur, rl[j], 1);
 		for (j=0; j<x; j++)
