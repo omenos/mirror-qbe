@@ -134,8 +134,8 @@ copy(Fn *fn)
 	Phi *p, **pp;
 	Ins *i;
 	Blk *b;
-	uint n, a;
-	Ref *cpy, r;
+	uint n, a, eq;
+	Ref *cpy, r, r1;
 	int t;
 
 	bsinit(ts, fn->ntmp);
@@ -150,13 +150,22 @@ copy(Fn *fn)
 			assert(rtype(p->to) == RTmp);
 			if (!req(cpy[p->to.val], R))
 				continue;
+			eq = 0;
 			r = R;
 			for (a=0; a<p->narg; a++)
-				if (p->blk[a]->id < n)
-					r = copyof(p->arg[a], cpy);
+				if (p->blk[a]->id < n) {
+					r1 = copyof(p->arg[a], cpy);
+					if (req(r, R) || req(r1, r))
+						eq++;
+					r = r1;
+				}
 			assert(!req(r, R));
-			cpy[p->to.val] = p->to;
-			phisimpl(p, r, cpy, &stk, ts, as, fn);
+			if (eq == p->narg)
+				cpy[p->to.val] = r;
+			else {
+				cpy[p->to.val] = p->to;
+				phisimpl(p, r, cpy, &stk, ts, as, fn);
+			}
 		}
 		for (i=b->ins; i<&b->ins[b->nins]; i++) {
 			assert(rtype(i->to) <= RTmp);
