@@ -299,8 +299,8 @@ coalesce(Fn *fn)
 	}
 	while (n--) {
 		t = &fn->tmp[kill[n]];
-		assert(t->ndef == 1 && t->ins);
-		*t->ins = (Ins){.op = Onop};
+		assert(t->ndef == 1 && t->def);
+		*t->def = (Ins){.op = Onop};
 		for (u=t->use; u<&t->use[t->nuse]; u++) {
 			assert(u->type == UIns);
 			i = u->u.ins;
@@ -327,7 +327,7 @@ coalesce(Fn *fn)
 			if (s->s || !s->r.b)
 				goto Skip;
 			if (rovlap(r, s->r))
-				/* O(n^2) can be approximated
+				/* O(n) can be approximated
 				 * by 'goto Skip;' if need be
 				 */
 				for (m=n; &sl[m]<s; m++)
@@ -347,8 +347,8 @@ coalesce(Fn *fn)
 		if (s->s == s)
 			continue;
 		t = &fn->tmp[s->t];
-		assert(t->ndef == 1 && t->ins);
-		*t->ins = (Ins){.op = Onop};
+		assert(t->ndef == 1 && t->def);
+		*t->def = (Ins){.op = Onop};
 		for (u=t->use; u<&t->use[t->nuse]; u++) {
 			assert(u->type == UIns);
 			arg = u->u.ins->arg;
