@@ -129,8 +129,8 @@ slot(int s, Fn *fn)
 static void
 emitaddr(Con *c, FILE *f)
 {
-	assert(c->reloc == RelDef);
-	fputs(str(c->label), f);
+	assert(c->sym.type == SGlo);
+	fputs(str(c->sym.id), f);
 	if (c->bits.i)
 		fprintf(f, "+%"PRIi64, c->bits.i);
 }
@@ -229,17 +229,17 @@ loadaddr(Con *c, char *rn, FILE *f)
 {
 	char off[32];
 
-	if (c->reloc == RelThr) {
+	if (c->sym.type == SThr) {
 		if (c->bits.i)
 			sprintf(off, "+%"PRIi64, c->bits.i);
 		else
 			off[0] = 0;
 		fprintf(f, "\tlui %s, %%tprel_hi(%s)%s\n",
-			rn, str(c->label), off);
+			rn, str(c->sym.id), off);
 		fprintf(f, "\tadd %s, %s, tp, %%tprel_add(%s)%s\n",
-			rn, rn, str(c->label), off);
+			rn, rn, str(c->sym.id), off);
 		fprintf(f, "\taddi %s, %s, %%tprel_lo(%s)%s\n",
-			rn, rn, str(c->label), off);
+			rn, rn, str(c->sym.id), off);
 	} else {
 		fprintf(f, "\tla %s, ", rn);
 		emitaddr(c, f);
@@ -279,7 +279,8 @@ fixmem(Ref *pr, Fn *fn, FILE *f)
 	r = *pr;
 	if (rtype(r) == RCon) {
 		c = &fn->con[r.val];
-		if (c->type == CAddr && c->reloc == RelThr) {
+		if (c->type == CAddr)
+		if (c->sym.type == SThr) {
 			loadcon(c, T6, Kl, f);
 			*pr = TMP(T6);
 		}
@@ -383,9 +384,11 @@ emitins(Ins *i, Fn *fn, FILE *f)
 		switch (rtype(i->arg[0])) {
 		case RCon:
 			con = &fn->con[i->arg[0].val];
-			if (con->type != CAddr || con->bits.i)
+			if (con->type != CAddr
+			|| con->sym.type != SGlo
+			|| con->bits.i)
 				goto Invalid;
-			fprintf(f, "\tcall %s\n", str(con->label));
+			fprintf(f, "\tcall %s\n", str(con->sym.id));
 			break;
 		case RTmp:
 			emitf("jalr %0", i, fn, f);

@@ -349,6 +349,12 @@ chuse(Ref r, int du, Fn *fn)
 		fn->tmp[r.val].nuse += du;
 }
 
+int
+symeq(Sym s0, Sym s1)
+{
+	return s0.type == s1.type && s0.id == s1.id;
+}
+
 Ref
 newcon(Con *c0, Fn *fn)
 {
@@ -358,9 +364,8 @@ newcon(Con *c0, Fn *fn)
 	for (i=0; i<fn->ncon; i++) {
 		c1 = &fn->con[i];
 		if (c0->type == c1->type
-		&& c0->label == c1->label
-		&& c0->bits.i == c1->bits.i
-		&& c0->reloc == c1->reloc)
+		&& symeq(c0->sym, c1->sym)
+		&& c0->bits.i == c1->bits.i)
 			return CON(i);
 	}
 	vgrow(&fn->con, ++fn->ncon);
@@ -391,7 +396,7 @@ addcon(Con *c0, Con *c1)
 			if (c0->type == CAddr)
 				return 0;
 			c0->type = CAddr;
-			c0->label = c1->label;
+			c0->sym = c1->sym;
 		}
 		c0->bits.i += c1->bits.i;
 	}

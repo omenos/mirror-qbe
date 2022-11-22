@@ -20,6 +20,7 @@ typedef struct Ins Ins;
 typedef struct Phi Phi;
 typedef struct Blk Blk;
 typedef struct Use Use;
+typedef struct Sym Sym;
 typedef struct Alias Alias;
 typedef struct Tmp Tmp;
 typedef struct Con Con;
@@ -264,6 +265,14 @@ struct Use {
 	} u;
 };
 
+struct Sym {
+	enum {
+		SGlo,
+		SThr,
+	} type;
+	uint32_t id;
+};
+
 enum {
 	NoAlias,
 	MayAlias,
@@ -283,10 +292,7 @@ struct Alias {
 	int base;
 	int64_t offset;
 	union {
-		struct {
-			uint32_t label;
-			int con;
-		} sym;
+		Sym sym;
 		struct {
 			int sz; /* -1 if > NBit */
 			bits m;
@@ -329,16 +335,12 @@ struct Con {
 		CBits,
 		CAddr,
 	} type;
-	uint32_t label;
+	Sym sym;
 	union {
 		int64_t i;
 		double d;
 		float s;
 	} bits;
-	enum {
-		RelDef,
-		RelThr,
-	} reloc;
 	char flt; /* 1 to print as s, 2 to print as d */
 };
 
@@ -463,6 +465,7 @@ int clsmerge(short *, short);
 int phicls(int, Tmp *);
 Ref newtmp(char *, int, Fn *);
 void chuse(Ref, int, Fn *);
+int symeq(Sym, Sym);
 Ref newcon(Con *, Fn *);
 Ref getcon(int64_t, Fn *);
 int addcon(Con *, Con *);

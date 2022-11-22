@@ -80,7 +80,7 @@ fixarg(Ref *pr, int k, int phi, Fn *fn)
 		c = &fn->con[r0.val];
 		if (T.apple
 		&& c->type == CAddr
-		&& c->reloc == RelThr) {
+		&& c->sym.type == SThr) {
 			r1 = newtmp("isel", Kl, fn);
 			*pr = r1;
 			if (c->bits.i) {
@@ -114,7 +114,7 @@ fixarg(Ref *pr, int k, int phi, Fn *fn)
 			c = &fn->con[fn->ncon-1];
 			sprintf(buf, "\"%sfp%d\"", T.asloc, n);
 			*c = (Con){.type = CAddr};
-			c->label = intern(buf);
+			c->sym.id = intern(buf);
 			r2 = newtmp("isel", Kl, fn);
 			emit(Oload, k, r1, r2, R);
 			emit(Ocopy, Kl, r2, CON(c-fn->con), R);

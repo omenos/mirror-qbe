@@ -333,35 +333,31 @@ foldint(Con *res, int op, int w, Con *cl, Con *cr)
 		double fd;
 	} l, r;
 	uint64_t x;
-	uint32_t lab;
-	int typ, rel;
+	Sym sym;
+	int typ;
 
+	memset(&sym, 0, sizeof sym);
 	typ = CBits;
-	rel = RelDef;
-	lab = 0;
 	l.s = cl->bits.i;
 	r.s = cr->bits.i;
 	if (op == Oadd) {
 		if (cl->type == CAddr) {
 			if (cr->type == CAddr)
 				return 1;
-			lab = cl->label;
-			rel = cl->reloc;
 			typ = CAddr;
+			sym = cl->sym;
 		}
 		else if (cr->type == CAddr) {
-			lab = cr->label;
-			rel = cr->reloc;
 			typ = CAddr;
+			sym = cr->sym;
 		}
 	}
 	else if (op == Osub) {
 		if (cl->type == CAddr) {
 			if (cr->type != CAddr) {
-				lab = cl->label;
-				rel = cl->reloc;
 				typ = CAddr;
-			} else if (cl->label != cr->label)
+				sym = cl->sym;
+			} else if (!symeq(cl->sym, cr->sym))
 				return 1;
 		}
 		else if (cr->type == CAddr)
@@ -407,9 +403,8 @@ foldint(Con *res, int op, int w, Con *cl, Con *cr)
 	case Ocast:
 		x = l.u;
 		if (cl->type == CAddr) {
-			lab = cl->label;
-			rel = cl->reloc;
 			typ = CAddr;
+			sym = cl->sym;
 		}
 		break;
 	default:
@@ -462,7 +457,7 @@ foldint(Con *res, int op, int w, Con *cl, Con *cr)
 		else
 			die("unreachable");
 	}
-	*res = (Con){.type=typ, .label=lab, .reloc=rel, .bits={.i=x}};
+	*res = (Con){.type=typ, .sym=sym, .bits={.i=x}};
 	return 0;
 }
 

@@ -18,8 +18,7 @@ getalias(Alias *a, Ref r, Fn *fn)
 		c = &fn->con[r.val];
 		if (c->type == CAddr) {
 			a->type = ASym;
-			a->u.sym.label = c->label;
-			a->u.sym.con = r.val;
+			a->u.sym = c->sym;
 		} else
 			a->type = ACon;
 		a->offset = c->bits.i;
@@ -52,7 +51,7 @@ alias(Ref p, int sp, Ref q, int sq, int *delta, Fn *fn)
 		/* they conservatively alias if the
 		 * symbols are different, or they
 		 * alias for sure if they overlap */
-		if (ap.u.sym.label != aq.u.sym.label)
+		if (!symeq(ap.u.sym, aq.u.sym))
 			return MayAlias;
 		if (ovlap)
 			return MustAlias;

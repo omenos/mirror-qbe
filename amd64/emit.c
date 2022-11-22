@@ -165,9 +165,9 @@ emitcon(Con *con, FILE *f)
 
 	switch (con->type) {
 	case CAddr:
-		l = str(con->label);
+		l = str(con->sym.id);
 		p = l[0] == '"' ? "" : T.assym;
-		if (con->reloc == RelThr) {
+		if (con->sym.type == SThr) {
 			if (T.apple)
 				fprintf(f, "%s%s@TLVP", p, l);
 			else
@@ -344,7 +344,7 @@ Next:
 			off = fn->con[ref.val];
 			emitcon(&off, f);
 			if (off.type == CAddr)
-			if (off.reloc != RelThr || T.apple)
+			if (off.sym.type != SThr || T.apple)
 				fprintf(f, "(%%rip)");
 			break;
 		case RTmp:

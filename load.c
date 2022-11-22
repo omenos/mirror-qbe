@@ -152,7 +152,9 @@ load(Slice sl, bits msk, Loc *l)
 			break;
 		case ACon:
 		case ASym:
-			c = curf->con[a->u.sym.con];
+			memset(&c, 0, sizeof c);
+			c.type = CAddr;
+			c.sym = a->u.sym;
 			c.bits.i = a->offset;
 			r = newcon(&c, curf);
 			break;

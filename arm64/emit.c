@@ -247,10 +247,10 @@ loadaddr(Con *c, char *rn, E *e)
 {
 	char *p, *l, *s;
 
-	switch (c->reloc) {
+	switch (c->sym.type) {
 	default:
 		die("unreachable");
-	case RelDef:
+	case SGlo:
 		if (T.apple)
 			s = "\tadrp\tR, S@pageO\n"
 			    "\tadd\tR, R, S@pageoffO\n";
@@ -258,7 +258,7 @@ loadaddr(Con *c, char *rn, E *e)
 			s = "\tadrp\tR, SO\n"
 			    "\tadd\tR, R, #:lo12:SO\n";
 		break;
-	case RelThr:
+	case SThr:
 		if (T.apple)
 			s = "\tadrp\tR, S@tlvppage\n"
 			    "\tldr\tR, [R, S@tlvppageoff]\n";
@@ -269,7 +269,7 @@ loadaddr(Con *c, char *rn, E *e)
 		break;
 	}
 
-	l = str(c->label);
+	l = str(c->sym.id);
 	p = l[0] == '"' ? "" : T.assym;
 	for (; *s; s++)
 		switch (*s) {
@@ -431,9 +431,11 @@ emitins(Ins *i, E *e)
 		if (rtype(i->arg[0]) != RCon)
 			goto Table;
 		c = &e->fn->con[i->arg[0].val];
-		if (c->type != CAddr || c->bits.i)
+		if (c->type != CAddr
+		|| c->sym.type != SGlo
+		|| c->bits.i)
 			die("invalid call argument");
-		l = str(c->label);
+		l = str(c->sym.id);
 		p = l[0] == '"' ? "" : T.assym;
 		fprintf(e->f, "\tbl\t%s%s\n", p, l);
 		break;

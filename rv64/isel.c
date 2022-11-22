@@ -46,7 +46,7 @@ fixarg(Ref *r, int k, Ins *i, Fn *fn)
 			c = &fn->con[fn->ncon-1];
 			sprintf(buf, "\"%sfp%d\"", T.asloc, n);
 			*c = (Con){.type = CAddr};
-			c->label = intern(buf);
+			c->sym.id = intern(buf);
 			emit(Oload, k, r1, CON(c-fn->con), R);
 			break;
 		}

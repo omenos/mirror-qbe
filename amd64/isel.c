@@ -81,7 +81,7 @@ fixarg(Ref *r, int k, Ins *i, Fn *fn)
 		a.offset.type = CAddr;
 		n = stashbits(&fn->con[r0.val].bits, KWIDE(k) ? 8 : 4);
 		sprintf(buf, "\"%sfp%d\"", T.asloc, n);
-		a.offset.label = intern(buf);
+		a.offset.sym.id = intern(buf);
 		fn->mem[fn->nmem-1] = a;
 	}
 	else if (op != Ocopy && k == Kl && noimm(r0, fn)) {
@@ -124,7 +124,7 @@ fixarg(Ref *r, int k, Ins *i, Fn *fn)
 		}
 	} else if (T.apple && rtype(r0) == RCon
 	&& (c = &fn->con[r0.val])->type == CAddr
-	&& c->reloc == RelThr) {
+	&& c->sym.type == SThr) {
 		r1 = newtmp("isel", Kl, fn);
 		if (c->bits.i) {
 			r2 = newtmp("isel", Kl, fn);
@@ -612,7 +612,8 @@ amatch(Addr *a, Ref r, int n, ANum *ai, Fn *fn)
 	if (rtype(r) == RCon) {
 		if (!addcon(&a->offset, &fn->con[r.val]))
 			err("unlikely sum of $%s and $%s",
-				str(a->offset.label), str(fn->con[r.val].label));
+				str(a->offset.sym.id),
+				str(fn->con[r.val].sym.id));
 		return 1;
 	}
 	assert(rtype(r) == RTmp);

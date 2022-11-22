@@ -420,12 +420,12 @@ parseref()
 		c.flt = 2;
 		break;
 	case Tthread:
-		c.reloc = RelThr;
+		c.sym.type = SThr;
 		expect(Tglo);
 		/* fall through */
 	case Tglo:
 		c.type = CAddr;
-		c.label = intern(tokval.str);
+		c.sym.id = intern(tokval.str);
 		break;
 	}
 	return newcon(&c, curf);
@@ -1174,7 +1174,7 @@ printcon(Con *c, FILE *f)
 	case CUndef:
 		break;
 	case CAddr:
-		fprintf(f, "$%s", str(c->label));
+		fprintf(f, "$%s", str(c->sym.id));
 		if (c->bits.i)
 			fprintf(f, "%+"PRIi64, c->bits.i);
 		break;
