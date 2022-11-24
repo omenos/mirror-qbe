@@ -228,7 +228,7 @@ coalesce(Fn *fn)
 	for (b=fn->start; b; b=b->link)
 		b->loop = -1;
 	loopiter(fn, maxrpo);
-	br = vnew(fn->nblk, sizeof br[0], PHeap);
+	br = emalloc(fn->nblk * sizeof br[0]);
 	ip = INT_MAX - 1;
 	for (n=fn->nblk-1; n>=0; n--) {
 		b = fn->rpo[n];
@@ -270,7 +270,7 @@ coalesce(Fn *fn)
 			}
 		br[n].a = ip;
 	}
-	vfree(br);
+	free(br);
 
 	/* kill slots with an empty live range */
 	total = 0;
@@ -290,11 +290,11 @@ coalesce(Fn *fn)
 	if (debug['M']) {
 		fputs("\n> Slot coalescing:\n", stderr);
 		if (n) {
-			fputs("\tDEAD", stderr);
+			fputs("\tkill [", stderr);
 			for (m=0; m<n; m++)
 				fprintf(stderr, " %%%s",
 					fn->tmp[kill[m]].name);
-			fputc('\n', stderr);
+			fputs(" ]\n", stderr);
 		}
 	}
 	while (n--) {
@@ -362,8 +362,7 @@ coalesce(Fn *fn)
 		for (s0=sl; s0<&sl[nsl]; s0++) {
 			if (s0->s != s0)
 				continue;
-			fprintf(stderr, "\tLOCL (% 3db) %s:",
-				s0->sz, fn->tmp[s0->t].name);
+			fprintf(stderr, "\tfuse (% 3db) [", s0->sz);
 			for (s=s0; s<&sl[nsl]; s++) {
 				if (s->s != s0)
 					continue;
@@ -374,9 +373,9 @@ coalesce(Fn *fn)
 				else
 					fputs("{}", stderr);
 			}
-			fputc('\n', stderr);
+			fputs(" ]\n", stderr);
 		}
-		fprintf(stderr, "\tSUMS %u/%u/%u (freed/fused/total)\n\n",
+		fprintf(stderr, "\tsums %u/%u/%u (killed/fused/total)\n\n",
 			freed, fused, total);
 		printfn(fn, stderr);
 	}
