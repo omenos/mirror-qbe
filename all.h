@@ -154,7 +154,7 @@ enum J {
 	X(jfisle) X(jfislt) X(jfiuge) X(jfiugt) \
 	X(jfiule) X(jfiult) X(jffeq)  X(jffge)  \
 	X(jffgt)  X(jffle)  X(jfflt)  X(jffne)  \
-	X(jffo)   X(jffuo)
+	X(jffo)   X(jffuo)  X(hlt)
 #define X(j) J##j,
 	JMPS(X)
 #undef X

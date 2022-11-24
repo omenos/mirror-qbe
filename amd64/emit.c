@@ -582,6 +582,9 @@ amd64_emitfn(Fn *fn, FILE *f)
 			emitins(*i, fn, f);
 		lbl = 1;
 		switch (b->jmp.type) {
+		case Jhlt:
+			fprintf(f, "\tud2\n");
+			break;
 		case Jret0:
 			if (fn->dynalloc)
 				fprintf(f,

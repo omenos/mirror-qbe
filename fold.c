@@ -147,6 +147,8 @@ visitjmp(Blk *b, int n, Fn *fn)
 		edge[n][0].work = flowrk;
 		flowrk = &edge[n][0];
 		break;
+	case Jhlt:
+		break;
 	default:
 		if (isret(b->jmp.type))
 			break;

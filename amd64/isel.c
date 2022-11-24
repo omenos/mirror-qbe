@@ -465,7 +465,9 @@ seljmp(Blk *b, Fn *fn)
 	Ins *fi;
 	Tmp *t;
 
-	if (b->jmp.type == Jret0 || b->jmp.type == Jjmp)
+	if (b->jmp.type == Jret0
+	|| b->jmp.type == Jjmp
+	|| b->jmp.type == Jhlt)
 		return;
 	assert(b->jmp.type == Jjnz);
 	r = b->jmp.arg;

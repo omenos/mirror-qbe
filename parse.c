@@ -44,6 +44,7 @@ enum {
 	Tjmp,
 	Tjnz,
 	Tret,
+	Thlt,
 	Texport,
 	Tthread,
 	Tfunc,
@@ -99,6 +100,7 @@ static char *kwmap[Ntok] = {
 	[Tjmp] = "jmp",
 	[Tjnz] = "jnz",
 	[Tret] = "ret",
+	[Thlt] = "hlt",
 	[Texport] = "export",
 	[Tthread] = "thread",
 	[Tfunc] = "function",
@@ -641,7 +643,10 @@ parseline(PState ps)
 			curb->s2 = findblk(tokval.str);
 		}
 		if (curb->s1 == curf->start || curb->s2 == curf->start)
-			err("invalid jump to the start node");
+			err("invalid jump to the start block");
+		goto Close;
+	case Thlt:
+		curb->jmp.type = Jhlt;
 	Close:
 		expect(Tnl);
 		closeblk();
@@ -1322,6 +1327,9 @@ printfn(Fn *fn, FILE *f)
 				fprintf(f, ", :%s", typ[fn->retty].name);
 			fprintf(f, "\n");
 			break;
+		case Jhlt:
+			fprintf(f, "\thlt\n");
+			break;
 		case Jjmp:
 			if (b->s1 != b->link)
 				fprintf(f, "\tjmp @%s\n", b->s1->name);
@@ -1332,6 +1340,7 @@ printfn(Fn *fn, FILE *f)
 				printref(b->jmp.arg, fn, f);
 				fprintf(f, ", ");
 			}
+			assert(b->s1 && b->s2);
 			fprintf(f, "@%s, @%s\n", b->s1->name, b->s2->name);
 			break;
 		}

@@ -239,16 +239,11 @@ seljmp(Blk *b, Fn *fn)
 	Ins *i, *ir;
 	int ck, cc, use;
 
-	switch (b->jmp.type) {
-	default:
-		assert(0 && "TODO 2");
-		break;
-	case Jret0:
-	case Jjmp:
+	if (b->jmp.type == Jret0
+	|| b->jmp.type == Jjmp
+	|| b->jmp.type == Jhlt)
 		return;
-	case Jjnz:
-		break;
-	}
+	assert(b->jmp.type == Jjnz);
 	r = b->jmp.arg;
 	use = -1;
 	b->jmp.arg = R;
