@@ -26,7 +26,7 @@ char *tok[] = {
 	"vaarg", "vastart", "...", "env",
 
 	"call", "phi", "jmp", "jnz", "ret", "hlt", "export",
-	"function", "type", "data", "section", "align",
+	"function", "type", "data", "section", "align", "blit",
 	"l", "w", "sh", "uh", "h", "sb", "ub", "b",
 	"d", "s", "z", "loadw", "loadl", "loads", "loadd",
 	"alloc1", "alloc2",

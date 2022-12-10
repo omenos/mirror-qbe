@@ -404,36 +404,6 @@ addcon(Con *c0, Con *c1)
 }
 
 void
-blit(Ref rdst, uint doff, Ref rsrc, uint boff, uint sz, Fn *fn)
-{
-	struct { int st, ld, cls, size; } *p, tbl[] = {
-		{ Ostorel, Oload,   Kl, 8 },
-		{ Ostorew, Oload,   Kw, 4 },
-		{ Ostoreh, Oloaduh, Kw, 2 },
-		{ Ostoreb, Oloadub, Kw, 1 }
-	};
-	Ref r, r1;
-	uint s;
-
-	for (p=tbl; sz; p++)
-		for (s=p->size; sz>=s; sz-=s, doff+=s, boff+=s) {
-			r = newtmp("blt", Kl, fn);
-			r1 = newtmp("blt", Kl, fn);
-			emit(p->st, 0, R, r, r1);
-			emit(Oadd, Kl, r1, rdst, getcon(doff, fn));
-			r1 = newtmp("blt", Kl, fn);
-			emit(p->ld, p->cls, r, r1, R);
-			emit(Oadd, Kl, r1, rsrc, getcon(boff, fn));
-		}
-}
-
-void
-blit0(Ref rdst, Ref rsrc, uint sz, Fn *fn)
-{
-	blit(rdst, 0, rsrc, 0, sz, fn);
-}
-
-void
 salloc(Ref rt, Ref rs, Fn *fn)
 {
 	Ref r0, r1;

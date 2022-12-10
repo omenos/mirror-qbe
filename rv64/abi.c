@@ -222,7 +222,8 @@ selret(Blk *b, Fn *fn)
 		typclass(&cr, &typ[fn->retty], 1, gpreg, fpreg);
 		if (cr.class & Cptr) {
 			assert(rtype(fn->retr) == RTmp);
-			blit0(fn->retr, r, cr.type->size, fn);
+			emit(Oblit1, 0, R, INT(cr.type->size), R);
+			emit(Oblit0, 0, R, r, fn->retr);
 			cty = 0;
 		} else {
 			ldregs(&cr, r, fn);
@@ -341,7 +342,7 @@ selcall(Fn *fn, Ins *i0, Ins *i1, Insl **ilp)
 	Class *ca, *c, cr;
 	int j, k, cty;
 	uint64_t stk, off;
-	Ref r, r1, tmp[2];
+	Ref r, r1, r2, tmp[2];
 
 	ca = alloc((i1-i0) * sizeof ca[0]);
 	cr.class = 0;
@@ -419,8 +420,10 @@ selcall(Fn *fn, Ins *i0, Ins *i1, Insl **ilp)
 			k = KWIDE(*c->cls) ? Kl : Kw;
 			emit(Ocast, k, TMP(*c->reg), i->arg[0], R);
 		}
-		if (c->class & Cptr)
-			blit0(i->arg[0], i->arg[1], c->type->size, fn);
+		if (c->class & Cptr) {
+			emit(Oblit1, 0, R, INT(c->type->size), R);
+			emit(Oblit0, 0, R, i->arg[1], i->arg[0]);
+		}
 	}
 
 	if (!stk)
@@ -450,11 +453,21 @@ selcall(Fn *fn, Ins *i0, Ins *i1, Insl **ilp)
 		}
 		if (i->op == Oargc) {
 			if (c->class & Cstk1) {
-				blit(r, off, i->arg[1], 0, 8, fn);
+				r1 = newtmp("abi", Kl, fn);
+				r2 = newtmp("abi", Kl, fn);
+				emit(Ostorel, 0, R, r2, r1);
+				emit(Oadd, Kl, r1, r, getcon(off, fn));
+				emit(Oload, Kl, r2, i->arg[1], R);
 				off += 8;
 			}
 			if (c->class & Cstk2) {
-				blit(r, off, i->arg[1], 8, 8, fn);
+				r1 = newtmp("abi", Kl, fn);
+				r2 = newtmp("abi", Kl, fn);
+				emit(Ostorel, 0, R, r2, r1);
+				emit(Oadd, Kl, r1, r, getcon(off, fn));
+				r1 = newtmp("abi", Kl, fn);
+				emit(Oload, Kl, r2, r1, R);
+				emit(Oadd, Kl, r1, i->arg[1], getcon(8, fn));
 				off += 8;
 			}
 		}

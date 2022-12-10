@@ -129,6 +129,8 @@ O(copy,    T(w,l,s,d, x,x,x,x), 0) X(0, 0, 1) V(0)
 /* Miscellaneous and Architecture-Specific Operations */
 O(nop,     T(x,x,x,x, x,x,x,x), 0) X(0, 0, 1) V(0)
 O(addr,    T(m,m,e,e, x,x,e,e), 0) X(0, 0, 1) V(0)
+O(blit0,   T(m,e,e,e, m,e,e,e), 0) X(0, 1, 0) V(0)
+O(blit1,   T(w,e,e,e, x,e,e,e), 0) X(0, 1, 0) V(0)
 O(swap,    T(w,l,s,d, w,l,s,d), 0) X(1, 0, 0) V(0)
 O(sign,    T(w,l,e,e, x,x,e,e), 0) X(0, 0, 0) V(0)
 O(salloc,  T(e,l,e,e, e,x,e,e), 0) X(0, 0, 0) V(0)

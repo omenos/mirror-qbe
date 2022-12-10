@@ -78,6 +78,7 @@ func(Fn *fn)
 	filluse(fn);
 	fold(fn);
 	T.abi1(fn);
+	simpl(fn);
 	fillpreds(fn);
 	filluse(fn);
 	T.isel(fn);

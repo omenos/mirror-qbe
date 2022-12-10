@@ -195,12 +195,13 @@ coalesce(Fn *fn)
 	Range r, *br;
 	Slot *s, *s0, *sl;
 	Blk *b, **ps, *succ[3];
-	Ins *i;
+	Ins *i, **bl;
 	Use *u;
 	Tmp *t, *ts;
 	Ref *arg;
 	bits x;
-	int n, m, nsl, ip, *stk;
+	int64_t off0, off1;
+	int n, m, sz, nsl, nbl, ip, *stk;
 	uint total, freed, fused;
 
 	/* minimize the stack usage
@@ -229,6 +230,8 @@ coalesce(Fn *fn)
 	for (b=fn->start; b; b=b->link)
 		b->loop = -1;
 	loopiter(fn, maxrpo);
+	nbl = 0;
+	bl = vnew(0, sizeof bl[0], PHeap);
 	br = emalloc(fn->nblk * sizeof br[0]);
 	ip = INT_MAX - 1;
 	for (n=fn->nblk-1; n>=0; n--) {
@@ -247,8 +250,11 @@ coalesce(Fn *fn)
 				}
 			}
 		}
+		if (b->jmp.type == Jretc)
+			load(b->jmp.arg, -1, --ip, fn, sl);
 		for (i=&b->ins[b->nins]; i!=b->ins;) {
-			arg = (--i)->arg;
+			--i;
+			arg = i->arg;
 			if (i->op == Oargc) {
 				load(arg[1], -1, --ip, fn, sl);
 			}
@@ -259,6 +265,16 @@ coalesce(Fn *fn)
 			if (isstore(i->op)) {
 				x = BIT(storesz(i)) - 1;
 				store(arg[1], x, ip--, fn, sl);
+			}
+			if (i->op == Oblit0) {
+				assert((i+1)->op == Oblit1);
+				assert(rtype((i+1)->arg[0]) == RInt);
+				sz = abs(rsval((i+1)->arg[0]));
+				x = sz >= NBit ? (bits)-1 : BIT(sz) - 1;
+				store(arg[1], x, ip--, fn, sl);
+				load(arg[0], x, ip, fn, sl);
+				vgrow(&bl, ++nbl);
+				bl[nbl-1] = i;
 			}
 		}
 		for (s=sl; s<&sl[nsl]; s++)
@@ -321,6 +337,8 @@ coalesce(Fn *fn)
 				stk[n-1] = i->to.val;
 			} else {
 				assert(!isarg(i->op));
+				if (i->op == Oblit0)
+					*(i+1) = (Ins){.op = Onop};
 				*i = (Ins){.op = Onop};
 			}
 		}
@@ -340,7 +358,7 @@ coalesce(Fn *fn)
 			if (s->s || !s->r.b)
 				goto Skip;
 			if (rovlap(r, s->r))
-				/* O(n) can be approximated
+				/* O(n); can be approximated
 				 * by 'goto Skip;' if need be
 				 */
 				for (m=n; &sl[m]<s; m++)
@@ -386,6 +404,20 @@ coalesce(Fn *fn)
 					arg[n] = TMP(s->s->t);
 		}
 	}
+
+	/* fix newly overlapping blits */
+	for (n=0; n<nbl; n++) {
+		i = bl[n];
+		if (i->op == Oblit0)
+		if (slot(&s, &off0, i->arg[0], fn, sl))
+		if (slot(&s0, &off1, i->arg[1], fn, sl))
+		if (s->s == s0->s && off0 < off1) {
+			sz = rsval((i+1)->arg[0]);
+			assert(sz >= 0);
+			(i+1)->arg[0] = INT(-sz);
+		}
+	}
+	vfree(bl);
 
 	if (debug['M']) {
 		for (s0=sl; s0<&sl[nsl]; s0++) {

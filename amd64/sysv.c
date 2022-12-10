@@ -127,7 +127,8 @@ selret(Blk *b, Fn *fn)
 		if (aret.inmem) {
 			assert(rtype(fn->retr) == RTmp);
 			emit(Ocopy, Kl, TMP(RAX), fn->retr, R);
-			blit0(fn->retr, r0, aret.type->size, fn);
+			emit(Oblit1, 0, R, INT(aret.type->size), R);
+			emit(Oblit0, 0, R, r0, fn->retr);
 			ca = 1;
 		} else {
 			ca = retr(reg, &aret);
@@ -410,15 +411,15 @@ selcall(Fn *fn, Ins *i0, Ins *i1, RAlloc **rap)
 	for (i=i0, a=ac, off=0; i<i1; i++, a++) {
 		if (i->op >= Oarge || !a->inmem)
 			continue;
+		r1 = newtmp("abi", Kl, fn);
 		if (i->op == Oargc) {
 			if (a->align == 4)
 				off += off & 15;
-			blit(r, off, i->arg[1], 0, a->type->size, fn);
-		} else {
-			r1 = newtmp("abi", Kl, fn);
+			emit(Oblit1, 0, R, INT(a->type->size), R);
+			emit(Oblit0, 0, R, i->arg[1], r1);
+		} else
 			emit(Ostorel, 0, R, i->arg[0], r1);
-			emit(Oadd, Kl, r1, r, getcon(off, fn));
-		}
+		emit(Oadd, Kl, r1, r, getcon(off, fn));
 		off += a->size;
 	}
 	emit(Osalloc, Kl, r, getcon(stk, fn), R);

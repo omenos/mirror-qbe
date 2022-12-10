@@ -6,7 +6,6 @@ typedef struct Loc Loc;
 typedef struct Slice Slice;
 typedef struct Insert Insert;
 
-
 struct Loc {
 	enum {
 		LRoot,   /* right above the original load */
@@ -19,6 +18,7 @@ struct Loc {
 
 struct Slice {
 	Ref ref;
+	int off;
 	short sz;
 	short cls; /* load class */
 };
@@ -194,6 +194,7 @@ killsl(Ref r, Slice sl)
 static Ref
 def(Slice sl, bits msk, Blk *b, Ins *i, Loc *il)
 {
+	Slice sl1;
 	Blk *bp;
 	bits msk1, msks;
 	int off, cls, cls1, op, sz, ld;
@@ -244,10 +245,33 @@ def(Slice sl, bits msk, Blk *b, Ins *i, Loc *il)
 			sz = storesz(i);
 			r1 = i->arg[1];
 			r = i->arg[0];
+		} else if (i->op == Oblit1) {
+			assert(rtype(i->arg[0]) == RInt);
+			sz = abs(rsval(i->arg[0]));
+			--i;
+			assert(i->op == Oblit0);
+			r1 = i->arg[1];
 		} else
 			continue;
-		switch (alias(sl.ref, sl.sz, r1, sz, &off, curf)) {
+		switch (alias(sl.ref, sl.off, sl.sz, r1, sz, &off, curf)) {
 		case MustAlias:
+			if (i->op == Oblit0) {
+				sl1 = sl;
+				sl1.ref = i->arg[0];
+				if (off >= 0) {
+					assert(off < sz);
+					sl1.off = off;
+					sz -= off;
+					off = 0;
+				} else {
+					sl1.off = 0;
+					sl1.sz += off;
+				}
+				if (sz > sl1.sz)
+					sz = sl1.sz;
+				assert(sz <= 8);
+				sl1.sz = sz;
+			}
 			if (off < 0) {
 				off = -off;
 				msk1 = (MASK(sz) << 8*off) & msks;
@@ -257,7 +281,12 @@ def(Slice sl, bits msk, Blk *b, Ins *i, Loc *il)
 				op = Oshr;
 			}
 			if ((msk1 & msk) == 0)
-				break;
+				continue;
+			if (i->op == Oblit0) {
+				r = def(sl1, MASK(sz), b, i, il);
+				if (req(r, R))
+					goto Load;
+			}
 			if (off) {
 				cls1 = cls;
 				if (op == Oshr && off + sl.sz > 4)
@@ -279,11 +308,11 @@ def(Slice sl, bits msk, Blk *b, Ins *i, Loc *il)
 			return r;
 		case MayAlias:
 			if (ld)
-				break;
+				continue;
 			else
 				goto Load;
 		case NoAlias:
-			break;
+			continue;
 		default:
 			die("unreachable");
 		}
@@ -397,7 +426,7 @@ loadopt(Fn *fn)
 			if (!isload(i->op))
 				continue;
 			sz = loadsz(i);
-			sl = (Slice){i->arg[0], sz, i->cls};
+			sl = (Slice){i->arg[0], 0, sz, i->cls};
 			l = (Loc){LRoot, i-b->ins, b};
 			i->arg[1] = def(sl, MASK(sz), b, i, &l);
 		}

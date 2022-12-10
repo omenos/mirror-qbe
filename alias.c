@@ -28,13 +28,17 @@ getalias(Alias *a, Ref r, Fn *fn)
 }
 
 int
-alias(Ref p, int sp, Ref q, int sq, int *delta, Fn *fn)
+alias(Ref p, int op, int sp, Ref q, int sq, int *delta, Fn *fn)
 {
 	Alias ap, aq;
 	int ovlap;
 
 	getalias(&ap, p, fn);
 	getalias(&aq, q, fn);
+	ap.offset += op;
+	/* when delta is meaningful (ovlap == 1),
+	 * we do not overflow int because sp and
+	 * sq are bounded by 2^28 */
 	*delta = ap.offset - aq.offset;
 	ovlap = ap.offset < aq.offset + sq && aq.offset < ap.offset + sp;
 
@@ -103,13 +107,34 @@ esc(Ref r, Fn *fn)
 	}
 }
 
+static void
+store(Ref r, int sz, Fn *fn)
+{
+	Alias *a;
+	int64_t off;
+	bits m;
+
+	if (rtype(r) == RTmp) {
+		a = &fn->tmp[r.val].alias;
+		if (a->slot) {
+			assert(astack(a->type));
+			off = a->offset;
+			if (sz >= NBit
+			|| (off < 0 || off >= NBit))
+				m = -1;
+			else
+				m = (BIT(sz) - 1) << off;
+			a->slot->u.loc.m |= m;
+		}
+	}
+}
+
 void
 fillalias(Fn *fn)
 {
 	uint n, m;
-	int t;
+	int t, sz;
 	int64_t x;
-	bits w;
 	Blk *b;
 	Phi *p;
 	Ins *i;
@@ -171,26 +196,23 @@ fillalias(Fn *fn)
 					a->offset += a1.offset;
 				}
 			}
-			if (req(i->to, R) || a->type == AUnk) {
+			if (req(i->to, R) || a->type == AUnk)
+			if (i->op != Oblit0) {
 				if (!isload(i->op))
 					esc(i->arg[0], fn);
 				if (!isstore(i->op))
 				if (i->op != Oargc)
 					esc(i->arg[1], fn);
 			}
-			if (isstore(i->op))
-			if (rtype(i->arg[1]) == RTmp) {
-				a = &fn->tmp[i->arg[1].val].alias;
-				if (a->slot) {
-					assert(astack(a->type));
-					x = a->offset;
-					if (0 <= x && x < NBit) {
-						w = BIT(storesz(i)) - 1;
-						a->slot->u.loc.m |= w << x;
-					} else
-						a->slot->u.loc.sz = -1;
-				}
+			if (i->op == Oblit0) {
+				++i;
+				assert(i->op == Oblit1);
+				assert(rtype(i->arg[0]) == RInt);
+				sz = abs(rsval(i->arg[0]));
+				store((i-1)->arg[1], sz, fn);
 			}
+			if (isstore(i->op))
+				store(i->arg[1], storesz(i), fn);
 		}
 		if (b->jmp.type != Jretc)
 			esc(b->jmp.arg, fn);

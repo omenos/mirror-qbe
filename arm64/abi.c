@@ -188,7 +188,8 @@ selret(Blk *b, Fn *fn)
 		typclass(&cr, &typ[fn->retty], gpreg, fpreg);
 		if (cr.class & Cptr) {
 			assert(rtype(fn->retr) == RTmp);
-			blit0(fn->retr, r, cr.t->size, fn);
+			emit(Oblit1, 0, R, INT(cr.t->size), R);
+			emit(Oblit0, 0, R, r, fn->retr);
 			cty = 0;
 		} else {
 			ldregs(cr.reg, cr.cls, cr.nreg, r, fn);
@@ -438,8 +439,8 @@ selcall(Fn *fn, Ins *i0, Ins *i1, Insl **ilp)
 		if ((c->class & Cstk) == 0)
 			continue;
 		off = align(off, c->align);
+		r = newtmp("abi", Kl, fn);
 		if (i->op == Oarg || isargbh(i->op)) {
-			r = newtmp("abi", Kl, fn);
 			switch (c->size) {
 			case 1: op = Ostoreb; break;
 			case 2: op = Ostoreh; break;
@@ -447,18 +448,22 @@ selcall(Fn *fn, Ins *i0, Ins *i1, Insl **ilp)
 			case 8: op = store[*c->cls]; break;
 			}
 			emit(op, 0, R, i->arg[0], r);
-			emit(Oadd, Kl, r, TMP(SP), getcon(off, fn));
+		} else {
+			assert(i->op == Oargc);
+			emit(Oblit1, 0, R, INT(c->size), R);
+			emit(Oblit0, 0, R, i->arg[1], r);
 		}
-		if (i->op == Oargc)
-			blit(TMP(SP), off, i->arg[1], 0, c->size, fn);
+		emit(Oadd, Kl, r, TMP(SP), getcon(off, fn));
 		off += c->size;
 	}
 	if (stk)
 		emit(Osub, Kl, TMP(SP), TMP(SP), rstk);
 
 	for (i=i0, c=ca; i<i1; i++, c++)
-		if (c->class & Cptr)
-			blit0(i->arg[0], i->arg[1], c->t->size, fn);
+		if (c->class & Cptr) {
+			emit(Oblit1, 0, R, INT(c->t->size), R);
+			emit(Oblit0, 0, R, i->arg[1], i->arg[0]);
+		}
 }
 
 static Params

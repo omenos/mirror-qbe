@@ -83,7 +83,8 @@ struct Ref {
 enum {
 	RTmp,
 	RCon,
-	RType,
+	RInt,
+	RType, /* last kind to come out of the parser */
 	RSlot,
 	RCall,
 	RMem,
@@ -97,6 +98,7 @@ enum {
 #define TYPE(x)  (Ref){RType, x}
 #define CALL(x)  (Ref){RCall, x}
 #define MEM(x)   (Ref){RMem, x}
+#define INT(x)   (Ref){RInt, (x)&0x1fffffff}
 
 static inline int req(Ref a, Ref b)
 {
@@ -474,8 +476,6 @@ int symeq(Sym, Sym);
 Ref newcon(Con *, Fn *);
 Ref getcon(int64_t, Fn *);
 int addcon(Con *, Con *);
-void blit(Ref, uint, Ref, uint, uint, Fn *);
-void blit0(Ref, Ref, uint, Fn *);
 void salloc(Ref, Ref, Fn *);
 void dumpts(BSet *, Tmp *, FILE *);
 
@@ -528,7 +528,7 @@ void coalesce(Fn *);
 /* alias.c */
 void fillalias(Fn *);
 void getalias(Alias *, Ref, Fn *);
-int alias(Ref, int, Ref, int, int *, Fn *);
+int alias(Ref, int, int, Ref, int, int *, Fn *);
 int escapes(Ref, Fn *);
 
 /* load.c */
@@ -548,6 +548,9 @@ void copy(Fn *);
 
 /* fold.c */
 void fold(Fn *);
+
+/* simpl.c */
+void simpl(Fn *);
 
 /* live.c */
 void liveon(BSet *, Blk *, Blk *);

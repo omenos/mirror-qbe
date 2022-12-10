@@ -27,7 +27,7 @@ typedef enum {
 	PEnd,
 } PState;
 
-enum {
+enum Token {
 	Txxx = 0,
 
 	/* aliases */
@@ -38,6 +38,7 @@ enum {
 	Talloc1,
 	Talloc2,
 
+	Tblit,
 	Tcall,
 	Tenv,
 	Tphi,
@@ -94,6 +95,7 @@ static char *kwmap[Ntok] = {
 	[Tloadd] = "loadd",
 	[Talloc1] = "alloc1",
 	[Talloc2] = "alloc2",
+	[Tblit] = "blit",
 	[Tcall] = "call",
 	[Tenv] = "env",
 	[Tphi] = "phi",
@@ -481,7 +483,7 @@ parserefl(int arg)
 	expect(Tlparen);
 	while (peek() != Trparen) {
 		if (curi - insb >= NIns)
-			err("too many instructions (1)");
+			err("too many instructions");
 		if (!arg && vararg)
 			err("no parameters allowed after '...'");
 		switch (peek()) {
@@ -578,6 +580,7 @@ parseline(PState ps)
 	Phi *phi;
 	Ref r;
 	Blk *b;
+	Con *c;
 	int t, op, i, k, ty;
 
 	t = nextnl();
@@ -586,6 +589,7 @@ parseline(PState ps)
 	switch (t) {
 	default:
 		if (isstore(t)) {
+		case Tblit:
 		case Tcall:
 		case Ovastart:
 			/* operations without result */
@@ -657,11 +661,6 @@ parseline(PState ps)
 	k = parsecls(&ty);
 	op = next();
 DoOp:
-	if (op == Tphi) {
-		if (ps != PPhi || curb == curf->start)
-			err("unexpected phi instruction");
-		op = -1;
-	}
 	if (op == Tcall) {
 		arg[0] = parseref();
 		parserefl(1);
@@ -686,14 +685,12 @@ DoOp:
 		err("cannot use vastart in non-variadic function");
 	if (k >= Ksb)
 		err("size class must be w, l, s, or d");
-	if (op >= NPubOp)
-		err("invalid instruction");
 	i = 0;
 	if (peek() != Tnl)
 		for (;;) {
 			if (i == NPred)
 				err("too many arguments");
-			if (op == -1) {
+			if (op == Tphi) {
 				expect(Tlbl);
 				blk[i] = findblk(tokval.str);
 			}
@@ -709,18 +706,10 @@ DoOp:
 			next();
 		}
 	next();
-Ins:
-	if (op != -1) {
-		if (curi - insb >= NIns)
-			err("too many instructions (2)");
-		curi->op = op;
-		curi->cls = k;
-		curi->to = r;
-		curi->arg[0] = arg[0];
-		curi->arg[1] = arg[1];
-		curi++;
-		return PIns;
-	} else {
+	switch (op) {
+	case Tphi:
+		if (ps != PPhi || curb == curf->start)
+			err("unexpected phi instruction");
 		phi = alloc(sizeof *phi);
 		phi->to = r;
 		phi->cls = k;
@@ -732,6 +721,39 @@ Ins:
 		*plink = phi;
 		plink = &phi->link;
 		return PPhi;
+	case Tblit:
+		if (curi - insb >= NIns-1)
+			err("too many instructions");
+		memset(curi, 0, 2 * sizeof(Ins));
+		curi->op = Oblit0;
+		curi->arg[0] = arg[0];
+		curi->arg[1] = arg[1];
+		curi++;
+		if (rtype(arg[2]) != RCon)
+			err("blit size must be constant");
+		c = &curf->con[arg[2].val];
+		r = INT(c->bits.i);
+		if (c->type != CBits
+		|| rsval(r) < 0
+		|| rsval(r) != c->bits.i)
+			err("invalid blit size");
+		curi->op = Oblit1;
+		curi->arg[0] = r;
+		curi++;
+		return PIns;
+	default:
+		if (op >= NPubOp)
+			err("invalid instruction");
+	Ins:
+		if (curi - insb >= NIns)
+			err("too many instructions");
+		curi->op = op;
+		curi->cls = k;
+		curi->to = r;
+		curi->arg[0] = arg[0];
+		curi->arg[1] = arg[1];
+		curi++;
+		return PIns;
 	}
 }
 
@@ -1240,6 +1262,9 @@ printref(Ref r, Fn *fn, FILE *f)
 			printref(m->index, fn, f);
 		}
 		fputc(']', f);
+		break;
+	case RInt:
+		fprintf(f, "%d", rsval(r));
 		break;
 	}
 }
