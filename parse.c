@@ -1211,7 +1211,7 @@ printref(Ref r, Fn *fn, FILE *f)
 		printcon(&fn->con[r.val], f);
 		break;
 	case RSlot:
-		fprintf(f, "S%d", (r.val&(1<<28)) ? r.val-(1<<29) : r.val);
+		fprintf(f, "S%d", rsval(r));
 		break;
 	case RCall:
 		fprintf(f, "%04x", r.val);

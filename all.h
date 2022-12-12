@@ -110,6 +110,11 @@ static inline int rtype(Ref r)
 	return r.type;
 }
 
+static inline int rsval(Ref r)
+{
+	return ((int32_t)r.val << 3) >> 3;
+}
+
 enum CmpI {
 	Cieq,
 	Cine,

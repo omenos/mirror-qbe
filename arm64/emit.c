@@ -138,9 +138,11 @@ rname(int r, int k)
 }
 
 static uint64_t
-slot(int s, E *e)
+slot(Ref r, E *e)
 {
-	s = ((int32_t)s << 3) >> 3;
+	int s;
+
+	s = rsval(r);
 	if (s == -1)
 		return 16 + e->frame;
 	if (s < 0) {
@@ -234,7 +236,7 @@ emitf(char *s, Ins *i, E *e)
 				fprintf(e->f, "[%s]", rname(r.val, Kl));
 				break;
 			case RSlot:
-				fprintf(e->f, "[x29, %"PRIu64"]", slot(r.val, e));
+				fprintf(e->f, "[x29, %"PRIu64"]", slot(r, e));
 				break;
 			}
 			break;
@@ -333,7 +335,7 @@ fixarg(Ref *pr, int sz, E *e)
 
 	r = *pr;
 	if (rtype(r) == RSlot) {
-		s = slot(r.val, e);
+		s = slot(r, e);
 		if (s > sz * 4095u) {
 			i = &(Ins){Oaddr, Kl, TMP(IP0), {r}};
 			emitins(i, e);
@@ -410,7 +412,7 @@ emitins(Ins *i, E *e)
 	case Oaddr:
 		assert(rtype(i->arg[0]) == RSlot);
 		rn = rname(i->to.val, Kl);
-		s = slot(i->arg[0].val, e);
+		s = slot(i->arg[0], e);
 		if (s <= 4095)
 			fprintf(e->f, "\tadd\t%s, x29, #%"PRIu64"\n", rn, s);
 		else if (s <= 65535)

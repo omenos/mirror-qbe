@@ -116,9 +116,11 @@ static char *rname[] = {
 };
 
 static int64_t
-slot(int s, Fn *fn)
+slot(Ref r, Fn *fn)
 {
-	s = ((int32_t)s << 3) >> 3;
+	int s;
+
+	s = rsval(r);
 	assert(s <= fn->slot);
 	if (s < 0)
 		return 8 * -s;
@@ -214,7 +216,7 @@ emitf(char *s, Ins *i, Fn *fn, FILE *f)
 				}
 				break;
 			case RSlot:
-				offset = slot(r.val, fn);
+				offset = slot(r, fn);
 				assert(offset >= -2048 && offset <= 2047);
 				fprintf(f, "%d(fp)", (int)offset);
 				break;
@@ -286,7 +288,7 @@ fixmem(Ref *pr, Fn *fn, FILE *f)
 		}
 	}
 	if (rtype(r) == RSlot) {
-		s = slot(r.val, fn);
+		s = slot(r, fn);
 		if (s < -2048 || s > 2047) {
 			fprintf(f, "\tli t6, %"PRId64"\n", s);
 			fprintf(f, "\tadd t6, fp, t6\n");
@@ -369,7 +371,7 @@ emitins(Ins *i, Fn *fn, FILE *f)
 	case Oaddr:
 		assert(rtype(i->arg[0]) == RSlot);
 		rn = rname[i->to.val];
-		s = slot(i->arg[0].val, fn);
+		s = slot(i->arg[0], fn);
 		if (-s < 2048) {
 			fprintf(f, "\tadd %s, fp, %"PRId64"\n", rn, s);
 		} else {

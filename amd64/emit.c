@@ -142,20 +142,19 @@ static char *rname[][4] = {
 
 
 static int
-slot(int s, Fn *fn)
+slot(Ref r, Fn *fn)
 {
-	struct { int i:29; } x;
+	int s;
 
-	/* sign extend s using a bitfield */
-	x.i = s;
-	assert(x.i <= fn->slot);
+	s = rsval(r);
+	assert(s <= fn->slot);
 	/* specific to NAlign == 3 */
-	if (x.i < 0)
-		return -4 * x.i;
+	if (s < 0)
+		return -4 * s;
 	else if (fn->vararg)
-		return -176 + -4 * (fn->slot - x.i);
+		return -176 + -4 * (fn->slot - s);
 	else
-		return -4 * (fn->slot - x.i);
+		return -4 * (fn->slot - s);
 }
 
 static void
@@ -286,14 +285,14 @@ Next:
 			fprintf(f, "%%%s", regtoa(ref.val, sz));
 			break;
 		case RSlot:
-			fprintf(f, "%d(%%rbp)", slot(ref.val, fn));
+			fprintf(f, "%d(%%rbp)", slot(ref, fn));
 			break;
 		case RMem:
 		Mem:
 			m = &fn->mem[ref.val];
 			if (rtype(m->base) == RSlot) {
 				off.type = CBits;
-				off.bits.i = slot(m->base.val, fn);
+				off.bits.i = slot(m->base, fn);
 				addcon(&m->offset, &off);
 				m->base = TMP(RBP);
 			}
@@ -338,7 +337,7 @@ Next:
 		case RMem:
 			goto Mem;
 		case RSlot:
-			fprintf(f, "%d(%%rbp)", slot(ref.val, fn));
+			fprintf(f, "%d(%%rbp)", slot(ref, fn));
 			break;
 		case RCon:
 			off = fn->con[ref.val];
