@@ -302,6 +302,11 @@ coalesce(Fn *fn)
 		assert(t->ndef == 1 && t->def);
 		*t->def = (Ins){.op = Onop};
 		for (u=t->use; u<&t->use[t->nuse]; u++) {
+			if (u->type == UJmp) {
+				b = fn->rpo[u->bid];
+				b->jmp.arg = CON_Z;
+				continue;
+			}
 			assert(u->type == UIns);
 			i = u->u.ins;
 			/* make loads crash */
@@ -357,6 +362,11 @@ coalesce(Fn *fn)
 		assert(t->ndef == 1 && t->def);
 		*t->def = (Ins){.op = Onop};
 		for (u=t->use; u<&t->use[t->nuse]; u++) {
+			if (u->type == UJmp) {
+				b = fn->rpo[u->bid];
+				b->jmp.arg = TMP(s->s->t);
+				continue;
+			}
 			assert(u->type == UIns);
 			arg = u->u.ins->arg;
 			for (n=0; n<2; n++)

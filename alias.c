@@ -192,6 +192,7 @@ fillalias(Fn *fn)
 				}
 			}
 		}
-		esc(b->jmp.arg, fn);
+		if (b->jmp.type != Jretc)
+			esc(b->jmp.arg, fn);
 	}
 }
