@@ -145,7 +145,7 @@ slot(Slot **ps, int64_t *off, Ref r, Fn *fn, Slot *sl)
 }
 
 static void
-memr(Ref r, bits x, int ip, Fn *fn, Slot *sl)
+load(Ref r, bits x, int ip, Fn *fn, Slot *sl)
 {
 	int64_t off;
 	Slot *s;
@@ -159,7 +159,7 @@ memr(Ref r, bits x, int ip, Fn *fn, Slot *sl)
 }
 
 static void
-memw(Ref r, bits x, int ip, Fn *fn, Slot *sl)
+store(Ref r, bits x, int ip, Fn *fn, Slot *sl)
 {
 	int64_t off;
 	Slot *s;
@@ -200,7 +200,7 @@ coalesce(Fn *fn)
 	Tmp *t;
 	Ref *arg;
 	bits x;
-	int n, m, nsl, ip, *kill;
+	int n, m, nsl, ip, *stk;
 	uint total, freed, fused;
 
 	/* minimize the stack usage
@@ -249,15 +249,15 @@ coalesce(Fn *fn)
 		for (i=&b->ins[b->nins]; i!=b->ins;) {
 			arg = (--i)->arg;
 			if (i->op == Oargc) {
-				memr(arg[1], -1, --ip, fn, sl);
+				load(arg[1], -1, --ip, fn, sl);
 			}
 			if (isload(i->op)) {
 				x = BIT(loadsz(i)) - 1;
-				memr(arg[0], x, --ip, fn, sl);
+				load(arg[0], x, --ip, fn, sl);
 			}
 			if (isstore(i->op)) {
 				x = BIT(storesz(i)) - 1;
-				memw(arg[1], x, ip--, fn, sl);
+				store(arg[1], x, ip--, fn, sl);
 			}
 		}
 		for (s=sl; s<&sl[nsl]; s++)
@@ -275,13 +275,13 @@ coalesce(Fn *fn)
 	/* kill slots with an empty live range */
 	total = 0;
 	freed = 0;
-	kill = vnew(0, sizeof kill[0], PHeap);
+	stk = vnew(0, sizeof stk[0], PHeap);
 	n = 0;
 	for (s=s0=sl; s<&sl[nsl]; s++) {
 		total += s->sz;
 		if (!s->r.b) {
-			vgrow(&kill, ++n);
-			kill[n-1] = s->t;
+			vgrow(&stk, ++n);
+			stk[n-1] = s->t;
 			freed += s->sz;
 		} else
 			*s0++ = *s;
@@ -293,12 +293,12 @@ coalesce(Fn *fn)
 			fputs("\tkill [", stderr);
 			for (m=0; m<n; m++)
 				fprintf(stderr, " %%%s",
-					fn->tmp[kill[m]].name);
+					fn->tmp[stk[m]].name);
 			fputs(" ]\n", stderr);
 		}
 	}
 	while (n--) {
-		t = &fn->tmp[kill[n]];
+		t = &fn->tmp[stk[n]];
 		assert(t->ndef == 1 && t->def);
 		*t->def = (Ins){.op = Onop};
 		for (u=t->use; u<&t->use[t->nuse]; u++) {
@@ -306,13 +306,13 @@ coalesce(Fn *fn)
 			i = u->u.ins;
 			if (!req(i->to, R)) {
 				assert(rtype(i->to) == RTmp);
-				vgrow(&kill, ++n);
-				kill[n-1] = i->to.val;
+				vgrow(&stk, ++n);
+				stk[n-1] = i->to.val;
 			} else
 				*i = (Ins){.op = Onop};
 		}
 	}
-	vfree(kill);
+	vfree(stk);
 
 	/* fuse slots by decreasing size */
 	qsort(sl, nsl, sizeof *sl, scmp);
