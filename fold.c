@@ -525,6 +525,8 @@ opfold(int op, int cls, Con *cl, Con *cr, Fn *fn)
 			return Bot;
 	} else
 		foldflt(&c, op, cls == Kd, cl, cr);
+	if (!KWIDE(cls))
+		c.bits.i &= 0xffffffff;
 	r = newcon(&c, fn);
 	assert(!(cls == Ks || cls == Kd) || c.flt);
 	return r.val;
