@@ -304,12 +304,19 @@ coalesce(Fn *fn)
 		for (u=t->use; u<&t->use[t->nuse]; u++) {
 			assert(u->type == UIns);
 			i = u->u.ins;
-			if (!req(i->to, R)) {
+			/* make loads crash */
+			if (isload(i->op))
+				i->arg[0] = CON_Z;
+			else if (i->op == Oargc)
+				i->arg[1] = CON_Z;
+			else if (!req(i->to, R)) {
 				assert(rtype(i->to) == RTmp);
 				vgrow(&stk, ++n);
 				stk[n-1] = i->to.val;
-			} else
+			} else {
+				assert(!isarg(i->op));
 				*i = (Ins){.op = Onop};
+			}
 		}
 	}
 	vfree(stk);
