@@ -248,6 +248,7 @@ def(Slice sl, bits msk, Blk *b, Ins *i, Loc *il)
 		} else if (i->op == Oblit1) {
 			assert(rtype(i->arg[0]) == RInt);
 			sz = abs(rsval(i->arg[0]));
+			assert(i > b->ins);
 			--i;
 			assert(i->op == Oblit0);
 			r1 = i->arg[1];
@@ -321,6 +322,7 @@ def(Slice sl, bits msk, Blk *b, Ins *i, Loc *il)
 	for (ist=ilog; ist<&ilog[nlog]; ++ist)
 		if (ist->isphi && ist->bid == b->id)
 		if (req(ist->new.phi.m.ref, sl.ref))
+		if (ist->new.phi.m.off == sl.off)
 		if (ist->new.phi.m.sz == sl.sz) {
 			r = ist->new.phi.p->to;
 			if (msk != msks)
