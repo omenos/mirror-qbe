@@ -197,7 +197,7 @@ coalesce(Fn *fn)
 	Blk *b, **ps, *succ[3];
 	Ins *i;
 	Use *u;
-	Tmp *t;
+	Tmp *t, *ts;
 	Ref *arg;
 	bits x;
 	int n, m, nsl, ip, *stk;
@@ -213,6 +213,7 @@ coalesce(Fn *fn)
 		t->visit = -1;
 		if (t->alias.type == ALoc)
 		if (t->alias.slot == &t->alias)
+		if (t->bid == fn->start->id)
 		if (t->alias.u.loc.sz != -1) {
 			t->visit = nsl;
 			vgrow(&sl, ++nsl);
@@ -356,11 +357,22 @@ coalesce(Fn *fn)
 
 	/* substitute fused slots */
 	for (s=sl; s<&sl[nsl]; s++) {
-		if (s->s == s)
-			continue;
 		t = &fn->tmp[s->t];
 		assert(t->ndef == 1 && t->def);
+		if (s->s == s)
+			continue;
 		*t->def = (Ins){.op = Onop};
+		ts = &fn->tmp[s->s->t];
+		assert(t->bid == ts->bid);
+		if (t->def < ts->def) {
+			/* make sure the slot we
+			 * selected has a def that
+			 * dominates its new uses
+			 */
+			*t->def = *ts->def;
+			*ts->def = (Ins){.op = Onop};
+			ts->def = t->def;
+		}
 		for (u=t->use; u<&t->use[t->nuse]; u++) {
 			if (u->type == UJmp) {
 				b = fn->rpo[u->bid];
