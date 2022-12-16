@@ -42,8 +42,8 @@ The intermediate language (IL) is a higher-level language
 than the machine's assembly language.  It smoothes most
 of the irregularities of the underlying hardware and
 allows an infinite number of temporaries to be used.
-This higher abstraction level allows frontend programmers
-to focus on language design issues.
+This higher abstraction level lets frontend programmers
+focus on language design issues.
 
 ~ Input Files
 ~~~~~~~~~~~~~
@@ -127,8 +127,8 @@ exactly one of two consecutive tokens is a symbol (for example
 ~~~~~~~~~~~~~~
 
     `bnf
-    BASETY := 'w' | 'l' | 's' | 'd'  # Base types
-    EXTTY  := BASETY    | 'b' | 'h'  # Extended types
+    BASETY := 'w' | 'l' | 's' | 'd' # Base types
+    EXTTY  := BASETY | 'b' | 'h'    # Extended types
 
 The IL makes minimal use of types.  By design, the types
 used are restricted to what is necessary for unambiguous
@@ -142,16 +142,16 @@ and `d` (double), they stand respectively for 32-bit and
 There are no pointer types available; pointers are typed
 by an integer type sufficiently wide to represent all memory
 addresses (e.g., `l` on 64-bit architectures).  Temporaries
-in the IL can only have a basic type.
+in the IL can only have a base type.
 
 Extended types contain base types plus `b` (byte) and `h`
 (half word), respectively for 8-bit and 16-bit integers.
 They are used in <@ Aggregate Types> and <@ Data> definitions.
 
 For C interfacing, the IL also provides user-defined aggregate
-types.  The syntax used to designate them is `:foo`.  Details
-about their definition are given in the <@ Aggregate Types >
-section.
+types as well as signed and unsigned variants of the sub-word
+extended types.  Read more about these types in the
+<@ Aggregate Types > and <@ Functions > sections.
 
 ~ Subtyping
 ~~~~~~~~~~~
@@ -178,10 +178,15 @@ by zero-extension, or by sign-extension.
       | 'd_' FP       # Double-precision float
       | $IDENT        # Global symbol
 
-Throughout the IL, constants are specified with a unified
-syntax and semantics.  Constants are immediates, meaning
-that they can be used directly in instructions; there is
-no need for a "load constant" instruction.
+    DYNCONST :=
+        CONST
+      | 'thread' $IDENT  # Thread-local symbol
+
+Constants come in two kinds: compile-time constants and
+dynamic constants.  Dynamic constants include compile-time
+constants and other symbol variants that are only known at
+program-load time or execution time.  Consequently, dynamic
+constants can only occur in function bodies.
 
 The representation of integers is two's complement.
 Floating-point numbers are represented using the
@@ -212,12 +217,17 @@ Global symbols can also be used directly as constants;
 they will be resolved and turned into actual numeric
 constants by the linker.
 
+When the `thread` keyword prefixes a symbol name, the
+symbol's numeric value is resolved at runtime in the
+thread-local storage.
+
 - 4. Linkage
 ------------
 
     `bnf
     LINKAGE :=
         'export' [NL]
+      | 'thread' [NL]
       | 'section' SECNAME [NL]
       | 'section' SECNAME SECFLAGS [NL]
 
@@ -232,6 +242,15 @@ The `export` linkage flag marks the defined item as
 visible outside the current file's scope.  If absent,
 the symbol can only be referred to locally.  Functions
 compiled by QBE and called from C need to be exported.
+
+The `thread` linkage flag can only qualify data
+definitions.  It mandates that the object defined is
+stored in thread-local storage.  Each time a runtime
+thread starts, the supporting platform runtime is in
+charge of making a new copy of the object for the
+fresh thread.  Objects in thread-local storage must
+be accessed using the `thread $IDENT` syntax, as
+specified in the <@ Constants > section.
 
 A `section` flag can be specified to tell the linker to
 put the defined item in a certain section.  The use of
@@ -381,7 +400,8 @@ Here are various examples of data definitions.
       | 'env' %IDENT  # Environment parameter (first)
       | '...'         # Variadic marker (last)
 
-    ABITY := BASETY | :IDENT
+    SUBWTY := 'sb' | 'ub' | 'sh' | 'uh'  # Sub-word types
+    ABITY  := BASETY | SUBWTY | :IDENT
 
 Function definitions contain the actual code to emit in
 the compiled file.  They define a global symbol that
@@ -391,7 +411,7 @@ can be used in `call` instructions or stored in memory.
 The type given right before the function name is the
 return type of the function.  All return values of this
 function must have this return type.  If the return
-type is missing, the function cannot return any value.
+type is missing, the function must not return any value.
 
 The parameter list is a comma separated list of
 temporary names prefixed by types.  The types are used
@@ -408,6 +428,26 @@ member of the struct.
             %val =w loadw %p
             ret %val
     }
+
+If a function accepts or returns values that are smaller
+than a word, such as `signed char` or `unsigned short` in C,
+one of the sub-word type must be used.  The sub-word types
+`sb`, `ub`, `sh`, and `uh` stand, respectively, for signed
+and unsigned 8-bit values, and signed and unsigned 16-bit
+values.  Parameters associated with a sub-word type of bit
+width N only have their N least significant bits set and
+have base type `w`.  For example, the function
+
+    function w $addbyte(w %a, sb %b) {
+    @start
+            %bw =w extsb %b
+            %val =w add %a, %bw
+            ret %val
+    }
+
+needs to sign-extend its second argument before the
+addition.  Dually, return values with sub-word types do
+not need to be sign or zero extended.
 
 If the parameter list ends with `...`, the function is
 a variadic function: it can accept a variable number of
@@ -439,7 +479,7 @@ there is no need for function declarations: a function
 can be referenced before its definition.
 Similarly, functions from other modules can be used
 without previous declaration.  All the type information
-is provided in the call instructions.
+necessary to compile a call is in the instruction itself. 
 
 The syntax and semantics for the body of functions
 are described in the <@ Control > section.
@@ -498,6 +538,7 @@ to the loop block.
         'jmp' @IDENT               # Unconditional
       | 'jnz' VAL, @IDENT, @IDENT  # Conditional
       | 'ret' [VAL]                # Return
+      | 'hlt'                      # Termination
 
 A jump instruction ends every block and transfers the
 control to another program location.  The target of
@@ -524,6 +565,14 @@ the following list.
     returned must be of the type given in the function
     prototype.  If the function prototype does not specify
     a return type, no return value can be used.
+
+ 4. Program termination.
+
+    Terminates the execution of the program with a
+    target-dependent error.  This instruction can be used
+    when it is expected that the execution never reaches
+    the end of the block it closes; for example, after
+    having called a function such as `exit()`.
 
 - 7. Instructions
 -----------------
@@ -681,7 +730,27 @@ towards zero.
     temporaries can be used directly instead, because
     it is illegal to take the address of a variable.
 
-The following example makes use some of the memory
+  * Blits.
+
+      * `blit` -- `(m,m,w)`
+
+    The blit instruction copies in-memory data from its
+    first address argument to its second address argument.
+    The third argument is the number of bytes to copy.  The
+    source and destination spans are required to be either
+    non-overlapping, or fully overlapping (source address
+    identical to the destination address).  The byte count
+    argument must be a nonnegative numeric constant; it
+    cannot be a temporary.
+
+    One blit instruction may generate a number of
+    instructions proportional to its byte count argument,
+    consequently, it is recommended to keep this argument
+    relatively small.  If large copies are necessary, it is
+    preferable that frontends generate calls to a supporting
+    `memcpy` function.
+
+The following example makes use of some of the memory
 instructions.  Pointers are stored in long temporaries.
 
     %A0 =l alloc4 8      # stack allocate an array A of 2 words
@@ -818,7 +887,8 @@ single-precision floating point number `%f` into `%rs`.
       | 'env' VAL  # Environment argument (first)
       | '...'      # Variadic marker
 
-    ABITY := BASETY | :IDENT
+    SUBWTY := 'sb' | 'ub' | 'sh' | 'uh'  # Sub-word types
+    ABITY  := BASETY | SUBWTY | :IDENT
 
 The call instruction is special in several ways.  It is not
 a three-address instruction and requires the type of all
@@ -832,6 +902,14 @@ type, the value respectively passed or returned needs to be
 a pointer to a memory location holding the value.  This is
 because aggregate types are not first-class citizens of
 the IL.
+
+Sub-word types are used for arguments and return values
+of width less than a word.  Details on these types are
+presented in the <@ Functions > section.  Arguments with
+sub-word types need not be sign or zero extended according
+to their type.  Calls with a sub-word return type define
+a temporary of base type `w` with its most significant bits
+unspecified.
 
 Unless the called function does not return a value, a
 return temporary must be specified, even if it is never
@@ -989,6 +1067,7 @@ instructions unless you know exactly what you are doing.
       * `alloc16`
       * `alloc4`
       * `alloc8`
+      * `blit`
       * `loadd`
       * `loadl`
       * `loads`
@@ -1084,6 +1163,7 @@ instructions unless you know exactly what you are doing.
 
   * <@ Jumps >:
 
+      * `hlt`
       * `jmp`
       * `jnz`
       * `ret`
