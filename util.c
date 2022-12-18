@@ -361,7 +361,7 @@ newcon(Con *c0, Fn *fn)
 	Con *c1;
 	int i;
 
-	for (i=0; i<fn->ncon; i++) {
+	for (i=1; i<fn->ncon; i++) {
 		c1 = &fn->con[i];
 		if (c0->type == c1->type
 		&& symeq(c0->sym, c1->sym)
@@ -378,8 +378,9 @@ getcon(int64_t val, Fn *fn)
 {
 	int c;
 
-	for (c=0; c<fn->ncon; c++)
-		if (fn->con[c].type == CBits && fn->con[c].bits.i == val)
+	for (c=1; c<fn->ncon; c++)
+		if (fn->con[c].type == CBits
+		&& fn->con[c].bits.i == val)
 			return CON(c);
 	vgrow(&fn->con, ++fn->ncon);
 	fn->con[c] = (Con){.type = CBits, .bits.i = val};

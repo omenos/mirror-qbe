@@ -90,10 +90,11 @@ enum {
 	RMem,
 };
 
-#define R        (Ref){0, 0}
+#define R        (Ref){RTmp, 0}
+#define UNDEF    (Ref){RCon, 0}  /* represents uninitialized data */
+#define CON_Z    (Ref){RCon, 1}
 #define TMP(x)   (Ref){RTmp, x}
 #define CON(x)   (Ref){RCon, x}
-#define CON_Z    CON(0)          /* reserved zero constant */
 #define SLOT(x)  (Ref){RSlot, (x)&0x1fffffff}
 #define TYPE(x)  (Ref){RType, x}
 #define CALL(x)  (Ref){RCall, x}

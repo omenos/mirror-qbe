@@ -1,8 +1,8 @@
 #include "all.h"
 
 enum {
-	Bot = -2, /* lattice bottom */
-	Top = -1, /* lattice top */
+	Bot = -1, /* lattice bottom */
+	Top = 0,  /* lattice top (matches UNDEF) */
 };
 
 typedef struct Edge Edge;
@@ -126,7 +126,6 @@ visitjmp(Blk *b, int n, Fn *fn)
 	switch (b->jmp.type) {
 	case Jjnz:
 		l = latval(b->jmp.arg);
-		assert(l != Top && "ssa invariant broken");
 		if (l == Bot) {
 			edge[n][1].work = flowrk;
 			edge[n][0].work = &edge[n][1];
@@ -174,7 +173,6 @@ renref(Ref *r)
 
 	if (rtype(*r) == RTmp)
 		if ((l=val[r->val]) != Bot) {
-			assert(l != Top && "ssa invariant broken");
 			*r = CON(l);
 			return 1;
 		}
@@ -294,9 +292,13 @@ fold(Fn *fn)
 		for (i=b->ins; i<&b->ins[b->nins]; i++)
 			if (renref(&i->to))
 				*i = (Ins){.op = Onop};
-			else
+			else {
 				for (n=0; n<2; n++)
 					renref(&i->arg[n]);
+				if (isstore(i->op))
+				if (req(i->arg[0], UNDEF))
+					*i = (Ins){.op = Onop};
+			}
 		renref(&b->jmp.arg);
 		if (b->jmp.type == Jjnz && rtype(b->jmp.arg) == RCon) {
 				if (iscon(&fn->con[b->jmp.arg.val], 0, 0)) {

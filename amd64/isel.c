@@ -482,7 +482,7 @@ seljmp(Blk *b, Fn *fn)
 	}
 	fi = flagi(b->ins, &b->ins[b->nins]);
 	if (!fi || !req(fi->to, r)) {
-		selcmp((Ref[2]){r, CON_Z}, Kw, 0, fn); /* todo, long jnz */
+		selcmp((Ref[2]){r, CON_Z}, Kw, 0, fn);
 		b->jmp.type = Jjf + Cine;
 	}
 	else if (iscmp(fi->op, &k, &c)

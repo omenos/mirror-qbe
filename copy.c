@@ -125,7 +125,7 @@ subst(Ref *pr, Ref *cpy)
 	*pr = copyof(*pr, cpy);
 }
 
-/* requires use and rpo, breaks use */
+/* requires use and dom, breaks use */
 void
 copy(Fn *fn)
 {
@@ -155,12 +155,16 @@ copy(Fn *fn)
 			for (a=0; a<p->narg; a++)
 				if (p->blk[a]->id < n) {
 					r1 = copyof(p->arg[a], cpy);
-					if (req(r, R) || req(r1, r))
+					if (req(r, R) || req(r, UNDEF))
+						r = r1;
+					if (req(r1, r) || req(r1, UNDEF))
 						eq++;
-					r = r1;
 				}
 			assert(!req(r, R));
-			if (eq == p->narg)
+			if (rtype(r) == RTmp
+			&& !dom(fn->rpo[fn->tmp[r.val].bid], b))
+				cpy[p->to.val] = p->to;
+			else if (eq == p->narg)
 				cpy[p->to.val] = r;
 			else {
 				cpy[p->to.val] = p->to;

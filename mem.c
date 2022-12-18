@@ -201,7 +201,7 @@ coalesce(Fn *fn)
 	Ref *arg;
 	bits x;
 	int64_t off0, off1;
-	int n, m, sz, nsl, nbl, ip, *stk;
+	int n, m, ip, sz, nsl, nbl, *stk;
 	uint total, freed, fused;
 
 	/* minimize the stack usage
@@ -317,26 +317,31 @@ coalesce(Fn *fn)
 	while (n--) {
 		t = &fn->tmp[stk[n]];
 		assert(t->ndef == 1 && t->def);
-		*t->def = (Ins){.op = Onop};
+		i = t->def;
+		if (isload(i->op)) {
+			i->op = Ocopy;
+			i->arg[0] = UNDEF;
+			continue;
+		}
+		*i = (Ins){.op = Onop};
 		for (u=t->use; u<&t->use[t->nuse]; u++) {
 			if (u->type == UJmp) {
 				b = fn->rpo[u->bid];
-				b->jmp.arg = CON_Z;
+				assert(isret(b->jmp.type));
+				b->jmp.type = Jret0;
+				b->jmp.arg = R;
 				continue;
 			}
 			assert(u->type == UIns);
 			i = u->u.ins;
-			/* make loads crash */
-			if (isload(i->op))
-				i->arg[0] = CON_Z;
-			else if (i->op == Oargc)
-				i->arg[1] = CON_Z;
-			else if (!req(i->to, R)) {
+			if (!req(i->to, R)) {
 				assert(rtype(i->to) == RTmp);
 				vgrow(&stk, ++n);
 				stk[n-1] = i->to.val;
+			} else if (isarg(i->op)) {
+				assert(i->op == Oargc);
+				i->arg[1] = CON_Z;  /* crash */
 			} else {
-				assert(!isarg(i->op));
 				if (i->op == Oblit0)
 					*(i+1) = (Ins){.op = Onop};
 				*i = (Ins){.op = Onop};

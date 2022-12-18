@@ -867,7 +867,7 @@ parsefn(Lnk *lnk)
 	curi = insb;
 	curf = alloc(sizeof *curf);
 	curf->ntmp = 0;
-	curf->ncon = 1; /* first constant must be 0 */
+	curf->ncon = 2;
 	curf->tmp = vnew(curf->ntmp, sizeof curf->tmp[0], PFn);
 	curf->con = vnew(curf->ncon, sizeof curf->con[0], PFn);
 	for (i=0; i<Tmp0; ++i)
@@ -876,6 +876,8 @@ parsefn(Lnk *lnk)
 		else
 			newtmp(0, Kl, curf);
 	curf->con[0].type = CBits;
+	curf->con[0].bits.i = 0xdeaddead;  /* UNDEF */
+	curf->con[1].type = CBits;
 	curf->lnk = *lnk;
 	blink = &curf->start;
 	curf->retty = Kx;
@@ -1230,7 +1232,10 @@ printref(Ref r, Fn *fn, FILE *f)
 			fprintf(f, "%%%s", fn->tmp[r.val].name);
 		break;
 	case RCon:
-		printcon(&fn->con[r.val], f);
+		if (req(r, UNDEF))
+			fprintf(f, "UNDEF");
+		else
+			printcon(&fn->con[r.val], f);
 		break;
 	case RSlot:
 		fprintf(f, "S%d", rsval(r));

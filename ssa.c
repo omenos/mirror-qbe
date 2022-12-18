@@ -264,7 +264,7 @@ getstk(int t, Blk *b, Name **stk)
 	stk[t] = n;
 	if (!n) {
 		/* uh, oh, warn */
-		return CON_Z;
+		return UNDEF;
 	} else
 		return n->r;
 }
