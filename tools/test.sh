@@ -73,13 +73,13 @@ init() {
 			cc="cc"
 			;;
 		*OpenBSD*)
-			cc="cc -nopie"
+			cc="cc -nopie -lpthread"
 			;;
 		*FreeBSD*)
-			cc="cc"
+			cc="cc -lpthread"
 			;;
 		*)
-			cc="${CC:-cc} -no-pie"
+			cc="${CC:-cc} -lpthread"
 			testcc "$cc" || cc="${CC:-cc}"
 			;;
 		esac
