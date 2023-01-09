@@ -712,24 +712,6 @@ towards zero.
     `loadsw` to make explicit that the extension mechanism
     used is irrelevant.
 
-  * Stack allocation.
-
-      * `alloc4` -- `m(l)`
-      * `alloc8` -- `m(l)`
-      * `alloc16` -- `m(l)`
-
-    These instructions allocate a chunk of memory on the
-    stack.  The number ending the instruction name is the
-    alignment required for the allocated slot.  QBE will
-    make sure that the returned address is a multiple of
-    that alignment value.
-
-    Stack allocation instructions are used, for example,
-    when compiling the C local variables, because their
-    address can be taken.  When compiling Fortran,
-    temporaries can be used directly instead, because
-    it is illegal to take the address of a variable.
-
   * Blits.
 
       * `blit` -- `(m,m,w)`
@@ -749,6 +731,24 @@ towards zero.
     relatively small.  If large copies are necessary, it is
     preferable that frontends generate calls to a supporting
     `memcpy` function.
+
+  * Stack allocation.
+
+      * `alloc4` -- `m(l)`
+      * `alloc8` -- `m(l)`
+      * `alloc16` -- `m(l)`
+
+    These instructions allocate a chunk of memory on the
+    stack.  The number ending the instruction name is the
+    alignment required for the allocated slot.  QBE will
+    make sure that the returned address is a multiple of
+    that alignment value.
+
+    Stack allocation instructions are used, for example,
+    when compiling the C local variables, because their
+    address can be taken.  When compiling Fortran,
+    temporaries can be used directly instead, because
+    it is illegal to take the address of a variable.
 
 The following example makes use of some of the memory
 instructions.  Pointers are stored in long temporaries.
