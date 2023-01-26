@@ -53,6 +53,7 @@ enum Token {
 	Tdata,
 	Tsection,
 	Talign,
+	Tfile,
 	Tl,
 	Tw,
 	Tsh,
@@ -110,6 +111,7 @@ static char *kwmap[Ntok] = {
 	[Tdata] = "data",
 	[Tsection] = "section",
 	[Talign] = "align",
+	[Tfile] = "file",
 	[Tsb] = "sb",
 	[Tub] = "ub",
 	[Tsh] = "sh",
@@ -130,7 +132,7 @@ enum {
 	TMask = 16383, /* for temps hash */
 	BMask = 8191, /* for blocks hash */
 
-	K = 9583425, /* found using tools/lexh.c */
+	K = 10525445, /* found using tools/lexh.c */
 	M = 23,
 };
 
@@ -655,6 +657,16 @@ parseline(PState ps)
 		expect(Tnl);
 		closeblk();
 		return PLbl;
+	case Oloc:
+		expect(Tint);
+		op = Oloc;
+		k = Kw;
+		r = R;
+		arg[0] = INT(tokval.num);
+		if (arg[0].val != tokval.num)
+			err("line number too big");
+		arg[1] = R;
+		goto Ins;
 	}
 	r = tmpref(tokval.str);
 	expect(Teq);
@@ -1160,7 +1172,7 @@ parselnk(Lnk *lnk)
 }
 
 void
-parse(FILE *f, char *path, void data(Dat *), void func(Fn *))
+parse(FILE *f, char *path, void dbgfile(char *), void data(Dat *), void func(Fn *))
 {
 	Lnk lnk;
 	uint n;
@@ -1177,6 +1189,10 @@ parse(FILE *f, char *path, void data(Dat *), void func(Fn *))
 		switch (parselnk(&lnk)) {
 		default:
 			err("top-level definition expected");
+		case Tfile:
+			expect(Tstr);
+			dbgfile(tokval.str);
+			break;
 		case Tfunc:
 			func(parsefn(&lnk));
 			break;

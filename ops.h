@@ -121,6 +121,8 @@ O(vastart, T(m,e,e,e, x,e,e,e), 0) X(0, 0, 0) V(0)
 
 O(copy,    T(w,l,s,d, x,x,x,x), 0) X(0, 0, 1) V(0)
 
+/* Debug */
+O(loc,     T(w,l,s,d, x,x,x,x), 0) X(0, 0, 1) V(0)
 
 /****************************************/
 /* INTERNAL OPERATIONS (keep nop first) */

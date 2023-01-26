@@ -107,6 +107,12 @@ func(Fn *fn)
 	freeall();
 }
 
+static void
+dbgfile(char *fn)
+{
+	emitdbgfile(fn, outf);
+}
+
 int
 main(int ac, char *av[])
 {
@@ -181,7 +187,7 @@ main(int ac, char *av[])
 				exit(1);
 			}
 		}
-		parse(inf, f, data, func);
+		parse(inf, f, dbgfile, data, func);
 		fclose(inf);
 	} while (++optind < ac);
 

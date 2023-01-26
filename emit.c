@@ -207,3 +207,35 @@ macho_emitfin(FILE *f)
 
 	emitfin(f, sec);
 }
+
+static uint32_t *file;
+static uint nfile;
+static uint curfile;
+
+void
+emitdbgfile(char *fn, FILE *f)
+{
+	uint32_t id;
+	uint n;
+
+	id = intern(fn);
+	for (n=0; n<nfile; n++)
+		if (file[n] == id) {
+			/* gas requires positive
+			 * file numbers */
+			curfile = n + 1;
+			return;
+		}
+	if (!file)
+		file = vnew(0, sizeof *file, PHeap);
+	vgrow(&file, ++nfile);
+	file[nfile-1] = id;
+	curfile = nfile;
+	fprintf(f, ".file %u %s\n", curfile, fn);
+}
+
+void
+emitdbgloc(uint loc, FILE *f)
+{
+	fprintf(f, "\t.loc %u %u\n", curfile, loc);
+}
