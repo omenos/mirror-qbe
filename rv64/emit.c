@@ -557,4 +557,5 @@ rv64_emitfn(Fn *fn, FILE *f)
 		}
 	}
 	id0 += fn->nblk;
+	elf_emitfnfin(fn->name, f);
 }
