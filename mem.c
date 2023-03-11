@@ -1,6 +1,7 @@
 #include "all.h"
 
 typedef struct Range Range;
+typedef struct Store Store;
 typedef struct Slot Slot;
 
 /* require use, maintains use counts */
@@ -95,6 +96,11 @@ struct Range {
 	int a, b;
 };
 
+struct Store {
+	int ip;
+	Ins *i;
+};
+
 struct Slot {
 	int t;
 	int sz;
@@ -102,6 +108,8 @@ struct Slot {
 	bits l;
 	Range r;
 	Slot *s;
+	Store *dead;
+	int ndead;
 };
 
 static inline int
@@ -159,15 +167,20 @@ load(Ref r, bits x, int ip, Fn *fn, Slot *sl)
 }
 
 static void
-store(Ref r, bits x, int ip, Fn *fn, Slot *sl)
+store(Ref r, bits x, int ip, Ins *i, Fn *fn, Slot *sl)
 {
 	int64_t off;
 	Slot *s;
 
 	if (slot(&s, &off, r, fn, sl)) {
-		if (s->l)
+		if (s->l) {
 			radd(&s->r, ip);
-		s->l &= ~(x << off);
+			s->l &= ~(x << off);
+		} else {
+			vgrow(&s->dead, ++s->ndead);
+			s->dead[s->ndead-1].ip = ip;
+			s->dead[s->ndead-1].i = i;
+		}
 	}
 }
 
@@ -223,6 +236,8 @@ coalesce(Fn *fn)
 			s->sz = t->alias.u.loc.sz;
 			s->m = t->alias.u.loc.m;
 			s->s = 0;
+			s->dead = vnew(0, sizeof s->dead[0], PHeap);
+			s->ndead = 0;
 		}
 	}
 
@@ -264,14 +279,14 @@ coalesce(Fn *fn)
 			}
 			if (isstore(i->op)) {
 				x = BIT(storesz(i)) - 1;
-				store(arg[1], x, ip--, fn, sl);
+				store(arg[1], x, ip--, i, fn, sl);
 			}
 			if (i->op == Oblit0) {
 				assert((i+1)->op == Oblit1);
 				assert(rtype((i+1)->arg[0]) == RInt);
 				sz = abs(rsval((i+1)->arg[0]));
 				x = sz >= NBit ? (bits)-1 : BIT(sz) - 1;
-				store(arg[1], x, ip--, fn, sl);
+				store(arg[1], x, ip--, i, fn, sl);
 				load(arg[0], x, ip, fn, sl);
 				vgrow(&bl, ++nbl);
 				bl[nbl-1] = i;
@@ -288,6 +303,16 @@ coalesce(Fn *fn)
 		br[n].a = ip;
 	}
 	free(br);
+
+	/* kill dead stores */
+	for (s=sl; s<&sl[nsl]; s++)
+		for (n=0; n<s->ndead; n++)
+			if (!rin(s->r, s->dead[n].ip)) {
+				i = s->dead[n].i;
+				if (i->op == Oblit0)
+					*(i+1) = (Ins){.op = Onop};
+				*i = (Ins){.op = Onop};
+			}
 
 	/* kill slots with an empty live range */
 	total = 0;
@@ -446,5 +471,7 @@ coalesce(Fn *fn)
 		printfn(fn, stderr);
 	}
 
+	for (s=sl; s<&sl[nsl]; s++)
+		vfree(s->dead);
 	vfree(sl);
 }
