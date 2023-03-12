@@ -406,6 +406,11 @@ coalesce(Fn *fn)
 	/* substitute fused slots */
 	for (s=sl; s<&sl[nsl]; s++) {
 		t = &fn->tmp[s->t];
+		/* the visit link is stale,
+		 * reset it before the slot()
+		 * calls below
+		 */
+		t->visit = s-sl;
 		assert(t->ndef == 1 && t->def);
 		if (s->s == s)
 			continue;
