@@ -108,8 +108,8 @@ struct Slot {
 	bits l;
 	Range r;
 	Slot *s;
-	Store *dead;
-	int ndead;
+	Store *st;
+	int nst;
 };
 
 static inline int
@@ -177,9 +177,9 @@ store(Ref r, bits x, int ip, Ins *i, Fn *fn, Slot *sl)
 			radd(&s->r, ip);
 			s->l &= ~(x << off);
 		} else {
-			vgrow(&s->dead, ++s->ndead);
-			s->dead[s->ndead-1].ip = ip;
-			s->dead[s->ndead-1].i = i;
+			vgrow(&s->st, ++s->nst);
+			s->st[s->nst-1].ip = ip;
+			s->st[s->nst-1].i = i;
 		}
 	}
 }
@@ -236,8 +236,8 @@ coalesce(Fn *fn)
 			s->sz = t->alias.u.loc.sz;
 			s->m = t->alias.u.loc.m;
 			s->s = 0;
-			s->dead = vnew(0, sizeof s->dead[0], PHeap);
-			s->ndead = 0;
+			s->st = vnew(0, sizeof s->st[0], PHeap);
+			s->nst = 0;
 		}
 	}
 
@@ -306,9 +306,9 @@ coalesce(Fn *fn)
 
 	/* kill dead stores */
 	for (s=sl; s<&sl[nsl]; s++)
-		for (n=0; n<s->ndead; n++)
-			if (!rin(s->r, s->dead[n].ip)) {
-				i = s->dead[n].i;
+		for (n=0; n<s->nst; n++)
+			if (!rin(s->r, s->st[n].ip)) {
+				i = s->st[n].i;
 				if (i->op == Oblit0)
 					*(i+1) = (Ins){.op = Onop};
 				*i = (Ins){.op = Onop};
@@ -322,6 +322,7 @@ coalesce(Fn *fn)
 	for (s=s0=sl; s<&sl[nsl]; s++) {
 		total += s->sz;
 		if (!s->r.b) {
+			vfree(s->st);
 			vgrow(&stk, ++n);
 			stk[n-1] = s->t;
 			freed += s->sz;
@@ -477,6 +478,6 @@ coalesce(Fn *fn)
 	}
 
 	for (s=sl; s<&sl[nsl]; s++)
-		vfree(s->dead);
+		vfree(s->st);
 	vfree(sl);
 }
