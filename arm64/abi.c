@@ -446,6 +446,7 @@ selcall(Fn *fn, Ins *i0, Ins *i1, Insl **ilp)
 			case 2: op = Ostoreh; break;
 			case 4:
 			case 8: op = store[*c->cls]; break;
+			default: die("unreachable");
 			}
 			emit(op, 0, R, i->arg[0], r);
 		} else {
@@ -546,7 +547,7 @@ split(Fn *fn, Blk *b)
 	idup(&bn->ins, curi, bn->nins);
 	curi = &insb[NIns];
 	bn->visit = ++b->visit;
-	(void)!snprintf(bn->name, NString, "%s.%d", b->name, b->visit);
+	snprintf(bn->name, NString, "%s.%d", b->name, b->visit);
 	bn->loop = b->loop;
 	bn->link = b->link;
 	b->link = bn;
