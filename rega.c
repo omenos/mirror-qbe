@@ -670,7 +670,7 @@ rega(Fn *fn)
 			b1->link = blist;
 			blist = b1;
 			fn->nblk++;
-			snprintf(b1->name, NString, "%s_%s", b->name, s->name);
+			fmt(b1->name, "%s_%s", b->name, s->name);
 			b1->nins = &insb[NIns] - curi;
 			stmov += b1->nins;
 			stblk += 1;

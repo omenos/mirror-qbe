@@ -13,8 +13,7 @@ OBJ      = $(COMMOBJ) $(AMD64OBJ) $(ARM64OBJ) $(RV64OBJ)
 
 SRCALL   = $(OBJ:.o=.c)
 
-CFLAGS = $(CPPFLAGS) -std=c99 -g \
-         -Wall -Wextra -Wpedantic -Wno-format-truncation
+CFLAGS   = -std=c99 -g -Wall -Wextra -Wpedantic
 
 qbe: $(OBJ)
 	$(CC) $(LDFLAGS) $(OBJ) -o $@

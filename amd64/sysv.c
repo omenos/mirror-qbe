@@ -512,7 +512,7 @@ split(Fn *fn, Blk *b)
 	idup(&bn->ins, curi, bn->nins);
 	curi = &insb[NIns];
 	bn->visit = ++b->visit;
-	snprintf(bn->name, NString, "%s.%d", b->name, b->visit);
+	fmt(bn->name, "%s.%d", b->name, b->visit);
 	bn->loop = b->loop;
 	bn->link = b->link;
 	b->link = bn;

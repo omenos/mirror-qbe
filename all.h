@@ -458,6 +458,7 @@ void freeall(void);
 void *vnew(ulong, size_t, Pool);
 void vfree(void *);
 void vgrow(void *, ulong);
+void fmt(char *, char *, ...);
 uint32_t intern(char *);
 char *str(uint32_t);
 int argcls(Ins *, int);

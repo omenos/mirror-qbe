@@ -154,6 +154,16 @@ vgrow(void *vp, ulong len)
 	*(Vec **)vp = v1;
 }
 
+void
+fmt(char *dst, char *s, ...)
+{
+	va_list ap;
+
+	va_start(ap, s);
+	vsnprintf(dst, NString, s, ap);
+	va_end(ap);
+}
+
 uint32_t
 intern(char *s)
 {
