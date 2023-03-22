@@ -507,7 +507,7 @@ split(Fn *fn, Blk *b)
 	Blk *bn;
 
 	++fn->nblk;
-	bn = blknew();
+	bn = newblk();
 	bn->nins = &insb[NIns] - curi;
 	idup(&bn->ins, curi, bn->nins);
 	curi = &insb[NIns];

@@ -1,7 +1,7 @@
 #include "all.h"
 
 Blk *
-blknew()
+newblk()
 {
 	static Blk z;
 	Blk *b;
@@ -299,7 +299,7 @@ simpljmp(Fn *fn)
 	Blk **uf; /* union-find */
 	Blk **p, *b, *ret;
 
-	ret = blknew();
+	ret = newblk();
 	ret->id = fn->nblk++;
 	ret->jmp.type = Jret0;
 	uf = emalloc(fn->nblk * sizeof uf[0]);

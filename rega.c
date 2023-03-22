@@ -665,7 +665,7 @@ rega(Fn *fn)
 			pmgen();
 			if (curi == &insb[NIns])
 				continue;
-			b1 = blknew();
+			b1 = newblk();
 			b1->loop = (b->loop+s->loop) / 2;
 			b1->link = blist;
 			blist = b1;

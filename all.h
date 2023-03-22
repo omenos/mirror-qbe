@@ -511,7 +511,7 @@ void err(char *, ...) __attribute__((noreturn));
 void elimsb(Fn *);
 
 /* cfg.c */
-Blk *blknew(void);
+Blk *newblk(void);
 void edgedel(Blk *, Blk **);
 void fillpreds(Fn *);
 void fillrpo(Fn *);

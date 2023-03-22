@@ -555,7 +555,7 @@ findblk(char *name)
 	for (b=blkh[h]; b; b=b->dlink)
 		if (strcmp(b->name, name) == 0)
 			return b;
-	b = blknew();
+	b = newblk();
 	b->id = nblk++;
 	strcpy(b->name, name);
 	b->dlink = blkh[h];
