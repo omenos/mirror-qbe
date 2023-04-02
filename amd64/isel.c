@@ -58,6 +58,21 @@ rslot(Ref r, Fn *fn)
 	return fn->tmp[r.val].slot;
 }
 
+static int
+hascon(Ref r, Con **pc, Fn *fn)
+{
+	switch (rtype(r)) {
+	case RCon:
+		*pc = &fn->con[r.val];
+		return 1;
+	case RMem:
+		*pc = &fn->mem[r.val].offset;
+		return 1;
+	default:
+		return 0;
+	}
+}
+
 static void
 fixarg(Ref *r, int k, Ins *i, Fn *fn)
 {
@@ -100,9 +115,8 @@ fixarg(Ref *r, int k, Ins *i, Fn *fn)
 		r1 = newtmp("isel", Kl, fn);
 		emit(Oaddr, Kl, r1, SLOT(s), R);
 	}
-	else if (T.apple && rtype(r0) == RCon
-	&& (c = &fn->con[r0.val])->type == CAddr
-	&& c->sym.type == SThr) {
+	else if (T.apple && hascon(r0, &c, fn)
+	&& c->type == CAddr && c->sym.type == SThr) {
 		r1 = newtmp("isel", Kl, fn);
 		if (c->bits.i) {
 			r2 = newtmp("isel", Kl, fn);
@@ -122,6 +136,12 @@ fixarg(Ref *r, int k, Ins *i, Fn *fn)
 		cc.bits.i = 0;
 		r3 = newcon(&cc, fn);
 		emit(Oload, Kl, r2, r3, R);
+		if (rtype(r0) == RMem) {
+			m = &fn->mem[r0.val];
+			m->offset.type = CUndef;
+			m->base = r1;
+			r1 = r0;
+		}
 	}
 	else if (!(isstore(op) && r == &i->arg[1])
 	&& !isload(op) && op != Ocall && rtype(r0) == RCon
