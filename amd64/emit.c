@@ -372,6 +372,7 @@ emitins(Ins i, Fn *fn, FILE *f)
 	int64_t val;
 	int o, t0;
 	Ins ineg;
+	char *sym;
 
 	switch (i.op) {
 	default:
@@ -490,6 +491,22 @@ emitins(Ins i, Fn *fn, FILE *f)
 		 * should use movabsq when reading movq */
 		emitf("mov%k %0, %=", &i, fn, f);
 		break;
+	case Oaddr:
+		if (!T.apple
+		&& rtype(i.arg[0]) == RCon
+		&& fn->con[i.arg[0].val].sym.type == SThr) {
+			/* derive the symbol address from the TCB
+			 * address at offset 0 of %fs */
+			assert(isreg(i.to));
+			sym = str(fn->con[i.arg[0].val].sym.id);
+			emitf("movq %%fs:0, %=", &i, fn, f);
+			fprintf(f, "\tleaq %s%s@tpoff(%%%s), %%%s\n",
+				sym[0] == '"' ? "" : T.assym, sym,
+				regtoa(i.to.val, SLong),
+				regtoa(i.to.val, SLong));
+			break;
+		}
+		goto Table;
 	case Ocall:
 		/* calls simply have a weird syntax in AT&T
 		 * assembly... */
