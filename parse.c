@@ -1203,6 +1203,8 @@ printcon(Con *c, FILE *f)
 	case CUndef:
 		break;
 	case CAddr:
+		if (c->sym.type == SThr)
+			fprintf(f, "thread ");
 		fprintf(f, "$%s", str(c->sym.id));
 		if (c->bits.i)
 			fprintf(f, "%+"PRIi64, c->bits.i);
