@@ -100,6 +100,29 @@ fixarg(Ref *r, int k, Ins *i, Fn *fn)
 		r1 = newtmp("isel", Kl, fn);
 		emit(Oaddr, Kl, r1, SLOT(s), R);
 	}
+	else if (T.apple && rtype(r0) == RCon
+	&& (c = &fn->con[r0.val])->type == CAddr
+	&& c->sym.type == SThr) {
+		r1 = newtmp("isel", Kl, fn);
+		if (c->bits.i) {
+			r2 = newtmp("isel", Kl, fn);
+			cc = (Con){.type = CBits};
+			cc.bits.i = c->bits.i;
+			r3 = newcon(&cc, fn);
+			emit(Oadd, Kl, r1, r2, r3);
+		} else
+			r2 = r1;
+		emit(Ocopy, Kl, r2, TMP(RAX), R);
+		r2 = newtmp("isel", Kl, fn);
+		r3 = newtmp("isel", Kl, fn);
+		emit(Ocall, 0, R, r3, CALL(17));
+		emit(Ocopy, Kl, TMP(RDI), r2, R);
+		emit(Oload, Kl, r3, r2, R);
+		cc = *c;
+		cc.bits.i = 0;
+		r3 = newcon(&cc, fn);
+		emit(Oload, Kl, r2, r3, R);
+	}
 	else if (!(isstore(op) && r == &i->arg[1])
 	&& !isload(op) && op != Ocall && rtype(r0) == RCon
 	&& fn->con[r0.val].type == CAddr) {
@@ -122,28 +145,6 @@ fixarg(Ref *r, int k, Ins *i, Fn *fn)
 			m->offset.type = CUndef;
 			m->base = r0;
 		}
-	} else if (T.apple && rtype(r0) == RCon
-	&& (c = &fn->con[r0.val])->type == CAddr
-	&& c->sym.type == SThr) {
-		r1 = newtmp("isel", Kl, fn);
-		if (c->bits.i) {
-			r2 = newtmp("isel", Kl, fn);
-			cc = (Con){.type = CBits};
-			cc.bits.i = c->bits.i;
-			r3 = newcon(&cc, fn);
-			emit(Oadd, Kl, r1, r2, r3);
-		} else
-			r2 = r1;
-		emit(Ocopy, Kl, r2, TMP(RAX), R);
-		r2 = newtmp("isel", Kl, fn);
-		r3 = newtmp("isel", Kl, fn);
-		emit(Ocall, 0, R, r3, CALL(17));
-		emit(Ocopy, Kl, TMP(RDI), r2, R);
-		emit(Oload, Kl, r3, r2, R);
-		cc = *c;
-		cc.bits.i = 0;
-		r3 = newcon(&cc, fn);
-		emit(Oload, Kl, r2, r3, R);
 	}
 	*r = r1;
 }
