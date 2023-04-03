@@ -115,7 +115,7 @@ static inline int rtype(Ref r)
 
 static inline int rsval(Ref r)
 {
-	return ((int32_t)r.val << 3) >> 3;
+	return (int32_t)((int64_t)r.val << 3) >> 3;
 }
 
 enum CmpI {
