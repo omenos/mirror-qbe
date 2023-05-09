@@ -800,8 +800,8 @@ arm64_abi(Fn *fn)
 }
 
 /* abi0 for apple target; introduces
- * necessery sign extension for arg
- * passing & returns
+ * necessary sign extensions in calls
+ * and returns
  */
 void
 apple_extsb(Fn *fn)
@@ -819,6 +819,7 @@ apple_extsb(Fn *fn)
 			op = Oextsb + (j - Jretsb);
 			emit(op, Kw, r, b->jmp.arg, R);
 			b->jmp.arg = r;
+			b->jmp.type = Jretw;
 		}
 		for (i=&b->ins[b->nins]; i>b->ins;) {
 			emiti(*--i);
@@ -845,7 +846,7 @@ apple_extsb(Fn *fn)
 	}
 
 	if (debug['A']) {
-		fprintf(stderr, "\n> After apple_extsb:\n");
+		fprintf(stderr, "\n> After Apple pre-ABI:\n");
 		printfn(fn, stderr);
 	}
 }
