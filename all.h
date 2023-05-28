@@ -33,7 +33,7 @@ typedef struct Lnk Lnk;
 typedef struct Target Target;
 
 enum {
-	NString = 72,
+	NString = 80,
 	NIns    = 1 << 20,
 	NAlign  = 3,
 	NField  = 32,
