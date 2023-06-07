@@ -589,6 +589,12 @@ parseline(PState ps)
 	if (ps == PLbl && t != Tlbl && t != Trbrace)
 		err("label or } expected");
 	switch (t) {
+	case Ttmp:
+		r = tmpref(tokval.str);
+		expect(Teq);
+		k = parsecls(&ty);
+		op = next();
+		break;
 	default:
 		if (isstore(t)) {
 		case Tblit:
@@ -598,13 +604,11 @@ parseline(PState ps)
 			r = R;
 			k = Kw;
 			op = t;
-			goto DoOp;
+			break;
 		}
 		err("label, instruction or jump expected");
 	case Trbrace:
 		return PEnd;
-	case Ttmp:
-		break;
 	case Tlbl:
 		b = findblk(tokval.str);
 		if (curb && curb->jmp.type == Jxxx) {
@@ -658,21 +662,15 @@ parseline(PState ps)
 		closeblk();
 		return PLbl;
 	case Oloc:
-		expect(Tint);
 		op = Oloc;
 		k = Kw;
 		r = R;
+		expect(Tint);
 		arg[0] = INT(tokval.num);
 		if (arg[0].val != tokval.num)
 			err("line number too big");
-		arg[1] = R;
 		goto Ins;
 	}
-	r = tmpref(tokval.str);
-	expect(Teq);
-	k = parsecls(&ty);
-	op = next();
-DoOp:
 	if (op == Tcall) {
 		arg[0] = parseref();
 		parserefl(1);
@@ -681,8 +679,7 @@ DoOp:
 		if (k == Kc) {
 			k = Kl;
 			arg[1] = TYPE(ty);
-		} else
-			arg[1] = R;
+		}
 		if (k >= Ksb)
 			k = Kw;
 		goto Ins;
