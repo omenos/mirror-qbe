@@ -1,6 +1,6 @@
 #!/bin/sh
 
-dir=`cd $(dirname "$0"); pwd`
+dir=`dirname "$0"`
 bin=$dir/../qbe
 binref=$dir/../qbe.ref
 
@@ -11,11 +11,6 @@ asm=$tmp.s
 asmref=$tmp.ref.s
 exe=$tmp.exe
 out=$tmp.out
-
-testcc() {
-	echo "int main() { }" | $1 -x c -o /dev/null - >/dev/null 2>&1
-	return $?
-}
 
 init() {
 	case "$TARGET" in
@@ -79,8 +74,8 @@ init() {
 			cc="cc -lpthread"
 			;;
 		*)
-			cc="${CC:-cc} -lpthread"
-			testcc "$cc" || cc="${CC:-cc}"
+			cc="${CC:-cc}"
+			ccpost="-lpthread"
 			;;
 		esac
 		TARGET=`$bin -t?`
@@ -154,7 +149,7 @@ once() {
 		src="$asm"
 	fi
 
-	if ! $cc -g -o $exe $src
+	if ! $cc -g -o $exe $src $ccpost
 	then
 		echo "[cc fail]"
 		return 1
