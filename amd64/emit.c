@@ -547,7 +547,7 @@ emitins(Ins i, Fn *fn, FILE *f)
 		emitcopy(i.arg[0], i.arg[1], i.cls, fn, f);
 		emitcopy(i.arg[1], TMP(XMM0+15), i.cls, fn, f);
 		break;
-	case Oloc:
+	case Odbgloc:
 		emitdbgloc(i.arg[0].val, f);
 		break;
 	}

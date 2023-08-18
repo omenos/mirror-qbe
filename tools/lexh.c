@@ -23,10 +23,10 @@ char *tok[] = {
 	"ceql", "cnel", "cles", "clts", "cgts", "cges",
 	"cnes", "ceqs", "cos", "cuos", "cled", "cltd",
 	"cgtd", "cged", "cned", "ceqd", "cod", "cuod",
-	"vaarg", "vastart", "...", "env", "loc",
+	"vaarg", "vastart", "...", "env", "dbgloc",
 
 	"call", "phi", "jmp", "jnz", "ret", "hlt", "export",
-	"function", "type", "data", "section", "align", "file",
+	"function", "type", "data", "section", "align", "dbgfile",
 	"blit", "l", "w", "sh", "uh", "h", "sb", "ub", "b",
 	"d", "s", "z", "loadw", "loadl", "loads", "loadd",
 	"alloc1", "alloc2",

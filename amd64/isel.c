@@ -392,7 +392,7 @@ sel(Ins i, ANum *an, Fn *fn)
 	case_Oload:
 		seladdr(&i.arg[0], an, fn);
 		goto Emit;
-	case Oloc:
+	case Odbgloc:
 	case Ocall:
 	case Osalloc:
 	case Ocopy:

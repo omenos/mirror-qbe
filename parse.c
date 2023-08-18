@@ -53,7 +53,7 @@ enum Token {
 	Tdata,
 	Tsection,
 	Talign,
-	Tfile,
+	Tdbgfile,
 	Tl,
 	Tw,
 	Tsh,
@@ -111,7 +111,7 @@ static char *kwmap[Ntok] = {
 	[Tdata] = "data",
 	[Tsection] = "section",
 	[Talign] = "align",
-	[Tfile] = "file",
+	[Tdbgfile] = "dbgfile",
 	[Tsb] = "sb",
 	[Tub] = "ub",
 	[Tsh] = "sh",
@@ -132,7 +132,7 @@ enum {
 	TMask = 16383, /* for temps hash */
 	BMask = 8191, /* for blocks hash */
 
-	K = 10525445, /* found using tools/lexh.c */
+	K = 9583425, /* found using tools/lexh.c */
 	M = 23,
 };
 
@@ -661,8 +661,8 @@ parseline(PState ps)
 		expect(Tnl);
 		closeblk();
 		return PLbl;
-	case Oloc:
-		op = Oloc;
+	case Odbgloc:
+		op = t;
 		k = Kw;
 		r = R;
 		expect(Tint);
@@ -1186,7 +1186,7 @@ parse(FILE *f, char *path, void dbgfile(char *), void data(Dat *), void func(Fn 
 		switch (parselnk(&lnk)) {
 		default:
 			err("top-level definition expected");
-		case Tfile:
+		case Tdbgfile:
 			expect(Tstr);
 			dbgfile(tokval.str);
 			break;
