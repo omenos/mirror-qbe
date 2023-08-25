@@ -357,8 +357,13 @@ sel(Ins i, ANum *an, Fn *fn)
 		kc = Kd;
 		tmp[4] = getcon(0xc3e0000000000000, fn);
 	Oftoui:
-		if (k == Kw)
+		if (k == Kw) {
+			r0 = newtmp("ftou", Kl, fn);
+			emit(Ocopy, Kw, i.to, r0, R);
+			i.cls = Kl;
+			i.to = r0;
 			goto Emit;
+		}
 		r0 = newtmp("ftou", kc, fn);
 		for (j=0; j<4; j++)
 			tmp[j] = newtmp("ftou", Kl, fn);
