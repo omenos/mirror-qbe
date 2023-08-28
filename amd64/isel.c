@@ -316,15 +316,15 @@ sel(Ins i, ANum *an, Fn *fn)
 		break;
 	case Oultof:
 		/* %mask =l and %arg.0, 1
-		   %isbig =l shr %arg.0, 63
-		   %divided =l shr %arg.0, %isbig
-		   %or =l or %mask, %divided
-		   %float =d sltof %or
-		   %cast =l cast %float
-		   %addend =l shl %isbig, 52
-		   %sum =l add %cast, %addend
-		   %result =d cast %sum
-		*/
+		 * %isbig =l shr %arg.0, 63
+		 * %divided =l shr %arg.0, %isbig
+		 * %or =l or %mask, %divided
+		 * %float =d sltof %or
+		 * %cast =l cast %float
+		 * %addend =l shl %isbig, 52
+		 * %sum =l add %cast, %addend
+		 * %result =d cast %sum
+		 */
 		r0 = newtmp("utof", k, fn);
 		if (k == Ks)
 			kc = Kw, sh = 23;
@@ -364,6 +364,18 @@ sel(Ins i, ANum *an, Fn *fn)
 			i.to = r0;
 			goto Emit;
 		}
+		/* %try0 =l {s,d}tosi %fp
+		 * %mask =l sar %try0, 63
+		 *
+		 *    mask is all ones if the first
+		 *    try was oob, all zeroes o.w.
+		 *
+		 * %fps ={s,d} sub %fp, (1<<63)
+		 * %try1 =l {s,d}tosi %fps
+		 *
+		 * %tmp =l and %mask, %try1
+		 * %res =l or %tmp, %try0
+		 */
 		r0 = newtmp("ftou", kc, fn);
 		for (j=0; j<4; j++)
 			tmp[j] = newtmp("ftou", Kl, fn);
