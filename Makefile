@@ -41,7 +41,7 @@ config.h:
 		;;                                     \
 	*)                                             \
 		case `uname -m` in                     \
-		*aarch64*)                             \
+		*aarch64*|*arm64*)                     \
 			echo "#define Deftgt T_arm64"; \
 			;;                             \
 		*riscv64*)                             \
