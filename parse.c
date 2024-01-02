@@ -669,6 +669,14 @@ parseline(PState ps)
 		arg[0] = INT(tokval.num);
 		if (arg[0].val != tokval.num)
 			err("line number too big");
+		if (peek() == Tcomma) {
+			next();
+			expect(Tint);
+			arg[1] = INT(tokval.num);
+			if (arg[1].val != tokval.num)
+				err("column number too big");
+		} else
+			arg[1] = INT(0);
 		goto Ins;
 	}
 	if (op == Tcall) {

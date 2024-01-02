@@ -406,7 +406,7 @@ emitins(Ins *i, Fn *fn, FILE *f)
 			emitf("mv %=, sp", i, fn, f);
 		break;
 	case Odbgloc:
-		emitdbgloc(i->arg[0].val, f);
+		emitdbgloc(i->arg[0].val, i->arg[1].val, f);
 		break;
 	}
 }

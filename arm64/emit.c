@@ -447,7 +447,7 @@ emitins(Ins *i, E *e)
 			emitf("mov %=, sp", i, e);
 		break;
 	case Odbgloc:
-		emitdbgloc(i->arg[0].val, e->f);
+		emitdbgloc(i->arg[0].val, i->arg[1].val, e->f);
 		break;
 	}
 }

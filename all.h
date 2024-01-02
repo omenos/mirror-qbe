@@ -569,7 +569,7 @@ void rega(Fn *);
 void emitfnlnk(char *, Lnk *, FILE *);
 void emitdat(Dat *, FILE *);
 void emitdbgfile(char *, FILE *);
-void emitdbgloc(uint, FILE *);
+void emitdbgloc(uint, uint, FILE *);
 int stashbits(void *, int);
 void elf_emitfnfin(char *, FILE *);
 void elf_emitfin(FILE *);
