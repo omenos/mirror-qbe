@@ -581,7 +581,7 @@ amd64_emitfn(Fn *fn, FILE *f)
 	uint64_t fs;
 
 	emitfnlnk(fn->name, &fn->lnk, f);
-	fputs("\tendbr64\n\tpushq %rbp\n\tmovq %rsp, %rbp\n", f);
+	fputs("\tpushq %rbp\n\tmovq %rsp, %rbp\n", f);
 	fs = framesz(fn);
 	if (fs)
 		fprintf(f, "\tsubq $%"PRIu64", %%rsp\n", fs);
