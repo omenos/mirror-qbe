@@ -258,7 +258,7 @@ thread starts, the supporting platform runtime is in
 charge of making a new copy of the object for the
 fresh thread.  Objects in thread-local storage must
 be accessed using the `thread $IDENT` syntax, as
-specified in the <@ Constants > section.
+specified in the <@ Constants and Vals > section.
 
 A `section` flag can be specified to tell the linker to
 put the defined item in a certain section.  The use of
