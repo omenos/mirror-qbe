@@ -196,15 +196,17 @@ fi
 case "$1" in
 "all")
 	fail=0
+	count=0
 	for t in $dir/../test/[!_]*.ssa
 	do
 		once $t
 		fail=`expr $fail + $?`
+		count=`expr $count + 1`
 	done
 	if test $fail -ge 1
 	then
 		echo
-		echo "$fail test(s) failed!"
+		echo "$fail of $count tests failed!"
 	else
 		echo
 		echo "All is fine!"
