@@ -90,4 +90,4 @@ src:
 		}" < $$F;                          \
 	done
 
-.PHONY: clean clean-gen check check-arm64 src 80 install uninstall
+.PHONY: clean clean-gen check check-arm64 check-rv64 src 80 install uninstall
