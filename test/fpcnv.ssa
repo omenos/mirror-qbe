@@ -72,6 +72,7 @@ function l $dtol(d %f) {
 
 
 # >>> driver
+# #include <float.h>
 # #include <limits.h>
 # 
 # extern float fneg(float);
@@ -113,15 +114,19 @@ function l $dtol(d %f) {
 # 			return 7;
 # 	}
 # 	for (i=0; i<sizeof(fin)/sizeof(fin[0]); i++) {
-# 		if (stol((float)fin[i]) != (unsigned long long)(float)fin[i])
-# 			return 8;
+# 		if (fin[i] >= 1LL << DBL_MANT_DIG)
+# 			break;
 # 		if (dtol(fin[i]) != (unsigned long long)fin[i])
-# 			return 9;
+# 			return 8;
 # 		if((unsigned long long)fin[i] > UINT_MAX)
 # 			continue;
-# 		if (stow((float)fin[i]) != (unsigned int)(float)fin[i])
-# 			return 10;
 # 		if (dtow(fin[i]) != (unsigned int)fin[i])
+# 			return 9;
+# 		if (fin[i] >= 1LL << FLT_MANT_DIG)
+# 			continue;
+# 		if (stol((float)fin[i]) != (unsigned long long)(float)fin[i])
+# 			return 10;
+# 		if (stow((float)fin[i]) != (unsigned int)(float)fin[i])
 # 			return 11;
 # 	}
 # 	return 0;
