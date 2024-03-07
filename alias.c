@@ -132,7 +132,7 @@ store(Ref r, int sz, Fn *fn)
 void
 fillalias(Fn *fn)
 {
-	uint n, m;
+	uint n;
 	int t, sz;
 	int64_t x;
 	Blk *b;
@@ -146,8 +146,6 @@ fillalias(Fn *fn)
 	for (n=0; n<fn->nblk; ++n) {
 		b = fn->rpo[n];
 		for (p=b->phi; p; p=p->link) {
-			for (m=0; m<p->narg; m++)
-				esc(p->arg[m], fn);
 			assert(rtype(p->to) == RTmp);
 			a = &fn->tmp[p->to.val].alias;
 			assert(a->type == ABot);
@@ -217,4 +215,8 @@ fillalias(Fn *fn)
 		if (b->jmp.type != Jretc)
 			esc(b->jmp.arg, fn);
 	}
+	for (b=fn->start; b; b=b->link)
+		for (p=b->phi; p; p=p->link)
+			for (n=0; n<p->narg; n++)
+				esc(p->arg[n], fn);
 }
