@@ -1091,6 +1091,9 @@ parsedat(void cb(Dat *), Lnk *lnk)
 	if (t == Talign) {
 		if (nextnl() != Tint)
 			err("alignment expected");
+		if (tokval.num <= 0 || tokval.num > CHAR_MAX
+		|| (tokval.num & (tokval.num-1)) != 0)
+			err("invalid alignment");
 		lnk->align = tokval.num;
 		t = nextnl();
 	}
