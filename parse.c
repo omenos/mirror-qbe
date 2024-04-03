@@ -203,7 +203,7 @@ getint()
 	n = 0;
 	c = fgetc(inf);
 	m = (c == '-');
-	if (m || c == '+')
+	if (m)
 		c = fgetc(inf);
 	do {
 		n = 10*n + (c - '0');
@@ -277,7 +277,7 @@ lex()
 		lnum++;
 		return Tnl;
 	}
-	if (isdigit(c) || c == '-' || c == '+') {
+	if (isdigit(c) || c == '-') {
 		ungetc(c, inf);
 		tokval.num = getint();
 		return Tint;
