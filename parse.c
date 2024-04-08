@@ -1297,6 +1297,9 @@ printref(Ref r, Fn *fn, FILE *f)
 	case RInt:
 		fprintf(f, "%d", rsval(r));
 		break;
+	case -1:
+		fprintf(f, "R");
+		break;
 	}
 }
 

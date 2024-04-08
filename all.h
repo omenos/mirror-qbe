@@ -21,6 +21,7 @@ typedef struct Phi Phi;
 typedef struct Blk Blk;
 typedef struct Use Use;
 typedef struct Sym Sym;
+typedef struct Num Num;
 typedef struct Alias Alias;
 typedef struct Tmp Tmp;
 typedef struct Con Con;
@@ -281,6 +282,12 @@ struct Sym {
 	uint32_t id;
 };
 
+struct Num {
+	uchar n;
+	uchar nl, nr;
+	Ref l, r;
+};
+
 enum {
 	NoAlias,
 	MayAlias,
@@ -480,6 +487,7 @@ Ref getcon(int64_t, Fn *);
 int addcon(Con *, Con *);
 void salloc(Ref, Ref, Fn *);
 void dumpts(BSet *, Tmp *, FILE *);
+void runmatch(uchar *, Num *, Ref, Ref *);
 
 void bsinit(BSet *, uint);
 void bszero(BSet *);

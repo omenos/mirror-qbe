@@ -594,3 +594,57 @@ dumpts(BSet *bs, Tmp *tmp, FILE *f)
 		fprintf(f, " %s", tmp[t].name);
 	fprintf(f, " ]\n");
 }
+
+void
+runmatch(uchar *code, Num *tn, Ref ref, Ref *var)
+{
+	Ref stkbuf[20], *stk;
+	uchar *s, *pc;
+	int bc, i;
+	int n, nl, nr;
+
+	assert(rtype(ref) == RTmp);
+	stk = stkbuf;
+	pc = code;
+	while ((bc = *pc))
+		switch (bc) {
+		case 1: /* pushsym */
+		case 2: /* push */
+			assert(stk < &stkbuf[20]);
+			assert(rtype(ref) == RTmp);
+			nl = tn[ref.val].nl;
+			nr = tn[ref.val].nr;
+			if (bc == 1 && nl > nr) {
+				*stk++ = tn[ref.val].l;
+				ref = tn[ref.val].r;
+			} else {
+				*stk++ = tn[ref.val].r;
+				ref = tn[ref.val].l;
+			}
+			pc++;
+			break;
+		case 3: /* set */
+			var[*++pc] = ref;
+			if (*(pc + 1) == 0)
+				return;
+			/* fall through */
+		case 4: /* pop */
+			assert(stk > &stkbuf[0]);
+			ref = *--stk;
+			pc++;
+			break;
+		case 5: /* switch */
+			assert(rtype(ref) == RTmp);
+			n = tn[ref.val].n;
+			s = pc + 1;
+			for (i=*s++; i>0; i--, s++)
+				if (n == *s++)
+					break;
+			pc += *s;
+			break;
+		default: /* jump */
+			assert(bc >= 10);
+			pc = code + (bc - 10);
+			break;
+		}
+}
