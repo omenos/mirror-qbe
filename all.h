@@ -484,7 +484,7 @@ void chuse(Ref, int, Fn *);
 int symeq(Sym, Sym);
 Ref newcon(Con *, Fn *);
 Ref getcon(int64_t, Fn *);
-int addcon(Con *, Con *);
+int addcon(Con *, Con *, int);
 void salloc(Ref, Ref, Fn *);
 void dumpts(BSet *, Tmp *, FILE *);
 void runmatch(uchar *, Num *, Ref, Ref *);

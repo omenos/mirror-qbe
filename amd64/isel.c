@@ -692,7 +692,7 @@ anumber(Num *tn, Blk *b, Con *con)
 }
 
 static Ref
-adisp(Con *c, Num *tn, Ref r, Fn *fn)
+adisp(Con *c, Num *tn, Ref r, Fn *fn, int s)
 {
 	Ref v[2];
 	int n;
@@ -704,7 +704,7 @@ adisp(Con *c, Num *tn, Ref r, Fn *fn)
 			break;
 		runmatch(matcher[Pob], tn, r, v);
 		assert(rtype(v[0]) == RCon);
-		addcon(c, &fn->con[v[0].val]);
+		addcon(c, &fn->con[v[0].val], s);
 		r = v[1];
 	}
 	return r;
@@ -733,18 +733,18 @@ amatch(Addr *a, Num *tn, Ref r, Fn *fn)
 
 	memset(&co, 0, sizeof co);
 	ro = v[0];
-	rb = adisp(&co, tn, v[1], fn);
+	rb = adisp(&co, tn, v[1], fn, 1);
 	ri = v[2];
 	rs = v[3];
 	s = 1;
 
 	if (*p < 0 && co.type != CUndef)
 	if (amatch(a, tn, rb, fn))
-		return addcon(&a->offset, &co);
+		return addcon(&a->offset, &co, 1);
 	if (!req(ro, R)) {
 		assert(rtype(ro) == RCon);
 		c = &fn->con[ro.val];
-		if (!addcon(&co, c))
+		if (!addcon(&co, c, 1))
 			return 0;
 	}
 	if (!req(rs, R)) {
@@ -753,6 +753,7 @@ amatch(Addr *a, Num *tn, Ref r, Fn *fn)
 		assert(c->type = CBits);
 		s = c->bits.i;
 	}
+	ri = adisp(&co, tn, ri, fn, s);
 	*a = (Addr){co, rb, ri, s};
 
 	if (rtype(ri) == RTmp)

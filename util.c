@@ -398,18 +398,21 @@ getcon(int64_t val, Fn *fn)
 }
 
 int
-addcon(Con *c0, Con *c1)
+addcon(Con *c0, Con *c1, int m)
 {
-	if (c0->type == CUndef)
+	if (m != 1 && c1->type == CAddr)
+		return 0;
+	if (c0->type == CUndef) {
 		*c0 = *c1;
-	else {
+		c0->bits.i *= m;
+	} else {
 		if (c1->type == CAddr) {
 			if (c0->type == CAddr)
 				return 0;
 			c0->type = CAddr;
 			c0->sym = c1->sym;
 		}
-		c0->bits.i += c1->bits.i;
+		c0->bits.i += c1->bits.i * m;
 	}
 	return 1;
 }

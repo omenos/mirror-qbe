@@ -293,7 +293,7 @@ Next:
 			if (rtype(m->base) == RSlot) {
 				off.type = CBits;
 				off.bits.i = slot(m->base, fn);
-				addcon(&m->offset, &off);
+				addcon(&m->offset, &off, 1);
 				m->base = TMP(RBP);
 			}
 			if (m->offset.type != CUndef)
