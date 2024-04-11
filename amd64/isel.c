@@ -734,7 +734,7 @@ amatch(Addr *a, Num *tn, Ref r, Fn *fn)
 	memset(&co, 0, sizeof co);
 	ro = v[0];
 	rb = adisp(&co, tn, v[1], fn);
-	ri = adisp(&co, tn, v[2], fn);
+	ri = v[2];
 	rs = v[3];
 	s = 1;
 
