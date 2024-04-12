@@ -97,8 +97,6 @@ emitdat(Dat *d, FILE *f)
 			fprintf(f, "\t.fill %"PRId64",1,0\n", d->u.num);
 		break;
 	default:
-		if (d->lnk->common)
-			die("unsupported common data item");
 		if (zero != -1) {
 			emitlnk(d->name, d->lnk, SecData, f);
 			if (zero > 0)
