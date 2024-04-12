@@ -90,4 +90,7 @@ src:
 		}" < $$F;                          \
 	done
 
-.PHONY: clean clean-gen check check-arm64 check-rv64 src 80 install uninstall
+wc:
+	@wc -l $(SRCALL)
+
+.PHONY: clean clean-gen check check-arm64 check-rv64 src 80 wc install uninstall
