@@ -371,6 +371,7 @@ struct Addr { /* amd64 addressing */
 struct Lnk {
 	char export;
 	char thread;
+	char common;
 	char align;
 	char *sec;
 	char *secf;

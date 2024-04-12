@@ -48,6 +48,7 @@ enum Token {
 	Thlt,
 	Texport,
 	Tthread,
+	Tcommon,
 	Tfunc,
 	Ttype,
 	Tdata,
@@ -106,6 +107,7 @@ static char *kwmap[Ntok] = {
 	[Thlt] = "hlt",
 	[Texport] = "export",
 	[Tthread] = "thread",
+	[Tcommon] = "common",
 	[Tfunc] = "function",
 	[Ttype] = "type",
 	[Tdata] = "data",
@@ -132,7 +134,7 @@ enum {
 	TMask = 16383, /* for temps hash */
 	BMask = 8191, /* for blocks hash */
 
-	K = 9583425, /* found using tools/lexh.c */
+	K = 11183273, /* found using tools/lexh.c */
 	M = 23,
 };
 
@@ -1158,6 +1160,9 @@ parselnk(Lnk *lnk)
 			break;
 		case Tthread:
 			lnk->thread = 1;
+			break;
+		case Tcommon:
+			lnk->common = 1;
 			break;
 		case Tsection:
 			if (lnk->sec)

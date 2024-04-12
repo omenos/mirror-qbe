@@ -75,7 +75,17 @@ emitdat(Dat *d, FILE *f)
 		zero = 0;
 		break;
 	case DEnd:
-		if (zero != -1) {
+		if (d->lnk->common) {
+			if (zero == -1)
+				die("invalid common data definition");
+			p = d->name[0] == '"' ? "" : T.assym;
+			fprintf(f, ".comm %s%s,%"PRId64,
+				p, d->name, zero);
+			if (d->lnk->align)
+				fprintf(f, ",%d", d->lnk->align);
+			fputc('\n', f);
+		}
+		else if (zero != -1) {
 			emitlnk(d->name, d->lnk, SecBss, f);
 			fprintf(f, "\t.fill %"PRId64",1,0\n", zero);
 		}
@@ -87,6 +97,8 @@ emitdat(Dat *d, FILE *f)
 			fprintf(f, "\t.fill %"PRId64",1,0\n", d->u.num);
 		break;
 	default:
+		if (d->lnk->common)
+			die("unsupported common data item");
 		if (zero != -1) {
 			emitlnk(d->name, d->lnk, SecData, f);
 			if (zero > 0)
