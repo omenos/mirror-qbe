@@ -152,7 +152,8 @@ static struct {
 static int lnum;
 
 static Fn *curf;
-static int tmph[TMask+1];
+static int *tmph;
+static int tmphcap;
 static Phi **plink;
 static Blk *curb;
 static Blk **blink;
@@ -384,19 +385,27 @@ expect(int t)
 static Ref
 tmpref(char *v)
 {
-	int t, *h;
+	int t, i;
 
-	h = &tmph[hash(v) & TMask];
-	t = *h;
-	if (t) {
+	if (tmphcap/2 <= curf->ntmp-Tmp0) {
+		free(tmph);
+		tmphcap = tmphcap ? tmphcap*2 : TMask+1;
+		tmph = emalloc(tmphcap * sizeof tmph[0]);
+		for (t=Tmp0; t<curf->ntmp; t++) {
+			i = hash(curf->tmp[t].name) & (tmphcap-1);
+			for (; tmph[i]; i=(i+1) & (tmphcap-1))
+				;
+			tmph[i] = t;
+		}
+	}
+	i = hash(v) & (tmphcap-1);
+	for (; tmph[i]; i=(i+1) & (tmphcap-1)) {
+		t = tmph[i];
 		if (strcmp(curf->tmp[t].name, v) == 0)
 			return TMP(t);
-		for (t=curf->ntmp-1; t>=Tmp0; t--)
-			if (strcmp(curf->tmp[t].name, v) == 0)
-				return TMP(t);
 	}
 	t = curf->ntmp;
-	*h = t;
+	tmph[i] = t;
 	newtmp(0, Kx, curf);
 	strcpy(curf->tmp[t].name, v);
 	return TMP(t);
@@ -926,7 +935,7 @@ parsefn(Lnk *lnk)
 		b->dlink = 0; /* was trashed by findblk() */
 	for (i=0; i<BMask+1; ++i)
 		blkh[i] = 0;
-	memset(tmph, 0, sizeof tmph);
+	memset(tmph, 0, tmphcap * sizeof tmph[0]);
 	typecheck(curf);
 	return curf;
 }
