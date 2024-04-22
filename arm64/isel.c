@@ -112,7 +112,7 @@ fixarg(Ref *pr, int k, int phi, Fn *fn)
 			n = stashbits(&c->bits, KWIDE(k) ? 8 : 4);
 			vgrow(&fn->con, ++fn->ncon);
 			c = &fn->con[fn->ncon-1];
-			sprintf(buf, "%sfp%d", T.asloc, n);
+			sprintf(buf, "\"%sfp%d\"", T.asloc, n);
 			*c = (Con){.type = CAddr};
 			c->sym.id = intern(buf);
 			r2 = newtmp("isel", Kl, fn);

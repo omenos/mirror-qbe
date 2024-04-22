@@ -88,7 +88,11 @@ fixarg(Ref *r, int k, Ins *i, Fn *fn)
 		memset(&a, 0, sizeof a);
 		a.offset.type = CAddr;
 		n = stashbits(&fn->con[r0.val].bits, KWIDE(k) ? 8 : 4);
-		sprintf(buf, "%sfp%d", T.asloc, n);
+		/* quote the name so that we do not
+		 * add symbol prefixes on the apple
+		 * target variant
+		 */
+		sprintf(buf, "\"%sfp%d\"", T.asloc, n);
 		a.offset.sym.id = intern(buf);
 		fn->mem[fn->nmem-1] = a;
 	}
