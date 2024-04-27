@@ -439,7 +439,7 @@ return type of the function.  All return values of this
 function must have this return type.  If the return
 type is missing, the function must not return any value.
 
-The parameter list is a comma separated list of
+The parameter list is a comma separated list of distinct
 temporary names prefixed by types.  The types are used
 to correctly implement C compatibility.  When an argument
 has an aggregate type, a pointer to the aggregate is passed
