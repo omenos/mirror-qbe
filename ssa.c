@@ -40,7 +40,7 @@ filluse(Fn *fn)
 	Blk *b;
 	Phi *p;
 	Ins *i;
-	int m, t, tp, w;
+	int m, t, tp, w, x;
 	uint a;
 	Tmp *tmp;
 
@@ -84,6 +84,8 @@ filluse(Fn *fn)
 					w = Wsb + (i->op - Oloadsb);
 				if (isext(i->op))
 					w = Wsb + (i->op - Oextsb);
+				if (iscmp(i->op, &x, &x))
+					w = Wub;
 				if (w == Wsw || w == Wuw)
 				if (i->cls == Kw)
 					w = WFull;
