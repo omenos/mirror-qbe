@@ -60,7 +60,7 @@ enum {
 static struct {
 	short op;
 	short cls;
-	char *asm;
+	char *fmt;
 } omap[] = {
 	{ Oadd,    Ka, "+add%k %1, %=" },
 	{ Osub,    Ka, "-sub%k %1, %=" },
@@ -393,7 +393,7 @@ emitins(Ins i, Fn *fn, FILE *f)
 			|| (omap[o].cls == Ka))
 				break;
 		}
-		emitf(omap[o].asm, &i, fn, f);
+		emitf(omap[o].fmt, &i, fn, f);
 		break;
 	case Onop:
 		/* just do nothing for nops, they are inserted
