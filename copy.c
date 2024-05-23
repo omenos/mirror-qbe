@@ -20,27 +20,15 @@ iscopy(Ins *i, Ref r, Fn *fn)
 		[Wsw] = BIT(Wsw),
 		[Wuw] = BIT(Wuw),
 	};
+	Op *op;
 	bits b;
 	Tmp *t;
 
-	switch (i->op) {
-	case Ocopy:
+	if (i->op == Ocopy)
 		return 1;
-	case Omul:
-	case Odiv:
-	case Oudiv:
-		return iscon(i->arg[1], 1, fn);
-	case Oadd:
-	case Osub:
-	case Oor:
-	case Oxor:
-	case Osar:
-	case Oshl:
-	case Oshr:
-		return iscon(i->arg[1], 0, fn);
-	default:
-		break;
-	}
+	op = &optab[i->op];
+	if (op->hasid && KBASE(i->cls) == 0)
+		return iscon(i->arg[1], op->idval, fn);
 	if (!isext(i->op) || rtype(r) != RTmp)
 		return 0;
 	if (i->op == Oextsw || i->op == Oextuw)

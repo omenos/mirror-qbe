@@ -15,8 +15,11 @@ enum {
 };
 
 Op optab[NOp] = {
-#define O(op, t, cf) [O##op]={#op, t, cf},
+#undef P
+#define P(cf, hi, id) .canfold = cf, .hasid = hi, .idval = id
+#define O(op, t, p) [O##op]={.name = #op, .argcls = t, p},
 	#include "ops.h"
+#undef P
 };
 
 typedef enum {

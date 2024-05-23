@@ -213,7 +213,9 @@ enum {
 struct Op {
 	char *name;
 	short argcls[2][4];
-	int canfold;
+	uint canfold:1;
+	uint hasid:1;
+	uint idval:1; /* identity value 0/1 */
 };
 
 struct Ins {
