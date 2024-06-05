@@ -296,7 +296,7 @@ coalesce(Fn *fn)
 			if (s->l) {
 				radd(&s->r, ip);
 				if (b->loop != -1) {
-					assert(b->loop > n);
+					assert(b->loop >= n);
 					radd(&s->r, br[b->loop].b - 1);
 				}
 			}
