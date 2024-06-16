@@ -754,7 +754,7 @@ amatch(Addr *a, Num *tn, Ref r, Fn *fn)
 	if (!req(rs, R)) {
 		assert(rtype(rs) == RCon);
 		c = &fn->con[rs.val];
-		assert(c->type = CBits);
+		assert(c->type == CBits);
 		s = c->bits.i;
 	}
 	ri = adisp(&co, tn, ri, fn, s);
