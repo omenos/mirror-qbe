@@ -514,6 +514,7 @@ arm64_emitfn(Fn *fn, FILE *out)
 	if (T.apple)
 		e->fn->lnk.align = 4;
 	emitfnlnk(e->fn->name, &e->fn->lnk, e->f);
+	fputs("\thint\t#34\n", e->f);
 	framelayout(e);
 
 	if (e->fn->vararg && !T.apple) {
