@@ -51,7 +51,7 @@ ulog2(uint64_t pow2)
 static int
 ispow2(uint64_t v)
 {
-	return (v & (v - 1)) == 0;
+	return v && (v & (v - 1)) == 0;
 }
 
 static void
