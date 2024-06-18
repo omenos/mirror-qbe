@@ -65,7 +65,7 @@ ins(Ins **pi, int *new, Blk *b, Fn *fn)
 
 	i = *pi;
 	/* simplify more instructions here;
-	 * copy 0 into xor bit rotations,
+	 * copy 0 into xor, bit rotations,
 	 * etc. */
 	switch (i->op) {
 	case Oblit1:
@@ -80,8 +80,14 @@ ins(Ins **pi, int *new, Blk *b, Fn *fn)
 		}
 		blit((i-1)->arg, rsval(i->arg[0]), fn);
 		*pi = i-1;
-		break;
+		return;
 	case Omul:
+		if (rtype(i->arg[0]) == RCon) {
+			r = i->arg[0];
+			i->arg[0] = i->arg[1];
+			i->arg[1] = r;
+		}
+		/* fall through */
 	case Oudiv:
 	case Ourem:
 		r = i->arg[1];
@@ -103,12 +109,10 @@ ins(Ins **pi, int *new, Blk *b, Fn *fn)
 				}
 			}
 		}
-		/* fall through */
-	default:
-		if (*new)
-			emiti(*i);
 		break;
 	}
+	if (*new)
+		emiti(*i);
 }
 
 void
