@@ -81,13 +81,6 @@ ins(Ins **pi, int *new, Blk *b, Fn *fn)
 		blit((i-1)->arg, rsval(i->arg[0]), fn);
 		*pi = i-1;
 		return;
-	case Omul:
-		if (rtype(i->arg[0]) == RCon) {
-			r = i->arg[0];
-			i->arg[0] = i->arg[1];
-			i->arg[1] = r;
-		}
-		/* fall through */
 	case Oudiv:
 	case Ourem:
 		r = i->arg[1];
@@ -100,11 +93,8 @@ ins(Ins **pi, int *new, Blk *b, Fn *fn)
 				if (i->op == Ourem) {
 					i->op = Oand;
 					i->arg[1] = getcon((1ull<<n) - 1, fn);
-				} else if (i->op == Oudiv) {
+				} else {
 					i->op = Oshr;
-					i->arg[1] = getcon(n, fn);
-				} else if (i->op == Omul) {
-					i->op = Oshl;
 					i->arg[1] = getcon(n, fn);
 				}
 			}
