@@ -360,54 +360,6 @@ Next:
 	goto Next;
 }
 
-static int
-mulops(int depth, int *ops, int64_t k)
-{
-	static int tab[] = {9, 8, 5, 4, 3, 2, 1, 0};
-	int *pm, m;
-
-	while (depth && k>1) {
-		for (pm=tab; (m=*pm); pm++)
-			if (k % m == 0) {
-				*ops++ = m;
-				depth -= 1;
-				k /= m;
-				goto next;
-			}
-		return 0;
-	next:;
-	}
-	*ops = 1;
-	return k == 1;
-}
-
-static int
-emitmulk(Ref to, Ref r, int64_t k, Ins *i, Fn *fn, FILE *f)
-{
-	int ops[3], *pm, m;
-	char fmt[32];
-
-	if (k == 1 || !mulops(2, ops, k))
-		return 0;
-
-	for (pm=ops; (m=*pm) != 1; pm++) {
-		if (m == 4 || m == 2) {
-			if (!req(r, to))
-				emitf("mov%k %1, %=", i, fn, f);
-			emitf("add%k %=, %=", i, fn, f);
-			if (m == 4)
-				emitf("add%k %=, %=", i, fn, f);
-		} else {
-			sprintf(fmt, "lea%%k (%s, %%1, %d), %%=",
-				(m & 1) ? "%1" : "", m & ~1);
-			emitf(fmt, i, fn, f);
-		}
-		r = to;
-		i->arg[1] = to;
-	}
-	return 1;
-}
-
 static void *negmask[4] = {
 	[Ks] = (uint32_t[4]){ 0x80000000 },
 	[Kd] = (uint64_t[2]){ 0x8000000000000000 },
@@ -454,14 +406,6 @@ emitins(Ins i, Fn *fn, FILE *f)
 			r = i.arg[0];
 			i.arg[0] = i.arg[1];
 			i.arg[1] = r;
-		}
-		if (KBASE(i.cls) == 0)
-		if (rtype(i.arg[0]) == RCon) {
-			con = &fn->con[i.arg[0].val];
-			val = con->bits.i;
-			if (con->type == CBits)
-			if (emitmulk(i.to, i.arg[1], val, &i, fn, f))
-				break;
 		}
 		if (KBASE(i.cls) == 0 /* only available for ints */
 		&& rtype(i.arg[0]) == RCon
