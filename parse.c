@@ -15,11 +15,17 @@ enum {
 };
 
 Op optab[NOp] = {
-#undef P
-#define P(cf, hi, id) .canfold = cf, .hasid = hi, .idval = id
-#define O(op, t, p) [O##op]={.name = #op, .argcls = t, p},
+#undef F
+#define F(cf, hi, id, co, as, im, ic, lg, cv, pn) \
+	.canfold = cf, \
+	.hasid = hi, .idval = id, \
+	.commutes = co, .assoc = as, \
+	.idemp = im, \
+	.cmpeqwl = ic, .cmplgtewl = lg, .eqval = cv, \
+	.ispinned = pn
+#define O(op, k, flags) [O##op]={.name = #op, .argcls = k, flags},
 	#include "ops.h"
-#undef P
+#undef F
 };
 
 typedef enum {

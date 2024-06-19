@@ -191,6 +191,7 @@ enum {
 #define INRANGE(x, l, u) ((unsigned)(x) - l <= u - l) /* linear in x */
 #define isstore(o) INRANGE(o, Ostoreb, Ostored)
 #define isload(o) INRANGE(o, Oloadsb, Oload)
+#define isalloc(o) INRANGE(o, Oalloc4, Oalloc16)
 #define isext(o) INRANGE(o, Oextsb, Oextuw)
 #define ispar(o) INRANGE(o, Opar, Opare)
 #define isarg(o) INRANGE(o, Oarg, Oargv)
@@ -214,8 +215,15 @@ struct Op {
 	char *name;
 	short argcls[2][4];
 	uint canfold:1;
-	uint hasid:1;
-	uint idval:1; /* identity value 0/1 */
+	uint hasid:1;     /* op identity value? */
+	uint idval:1;     /* identity value 0/1 */
+	uint commutes:1;  /* commutative op? */
+	uint assoc:1;     /* associative op? */
+	uint idemp:1;     /* idempotent op? */
+	uint cmpeqwl:1;   /* Kl/Kw cmp eq/ne? */
+	uint cmplgtewl:1; /* Kl/Kw cmp lt/gt/le/ge? */
+	uint eqval:1;     /* 1 for eq; 0 for ne */
+	uint ispinned:1;  /* GCM pinned op? */
 };
 
 struct Ins {
@@ -230,7 +238,8 @@ struct Phi {
 	Ref *arg;
 	Blk **blk;
 	uint narg;
-	int cls;
+	short cls;
+	uint visit:1;
 	Phi *link;
 };
 
@@ -251,6 +260,7 @@ struct Blk {
 
 	Blk *idom;
 	Blk *dom, *dlink;
+	int domdpth;
 	Blk **fron;
 	uint nfron;
 
@@ -344,6 +354,9 @@ struct Tmp {
 		Wuw
 	} width;
 	int visit;
+	uint gcmbid;
+	uint gcminsn; // TODO get rid
+	uint gcmdefinsn; // TODO get rid
 };
 
 struct Con {
@@ -450,6 +463,20 @@ struct Dat {
 	char isstr;
 };
 
+typedef struct InsLoc InsLoc;
+
+struct InsLoc {
+	uint bid;
+	uint insn;
+};
+
+typedef struct InsMov InsMov;
+
+struct InsMov {
+	InsLoc from;
+	InsLoc to;
+};
+
 /* main.c */
 extern Target T;
 extern char debug['Z'+1];
@@ -476,6 +503,7 @@ char *str(uint32_t);
 int argcls(Ins *, int);
 int isreg(Ref);
 int iscmp(int, int *, int *);
+int invcmpwl(int);
 void emit(int, int, Ref, Ref, Ref);
 void emiti(Ins);
 void idup(Blk *, Ins *, ulong);
@@ -484,16 +512,19 @@ int cmpop(int);
 int cmpneg(int);
 int clsmerge(short *, short);
 int phicls(int, Tmp *);
+uint phiargn(Phi *, Blk *);
+Ref phiarg(Phi *, Blk *);
 Ref newtmp(char *, int, Fn *);
 void chuse(Ref, int, Fn *);
 int symeq(Sym, Sym);
 Ref newcon(Con *, Fn *);
 Ref getcon(int64_t, Fn *);
 int addcon(Con *, Con *, int);
+int isconbits(Fn *fn, Ref r, int64_t *v);
+int istmpconbits(Fn *fn, Ins *i, int64_t *v);
 void salloc(Ref, Ref, Fn *);
 void dumpts(BSet *, Tmp *, FILE *);
 void runmatch(uchar *, Num *, Ref, Ref *);
-
 void bsinit(BSet *, uint);
 void bszero(BSet *);
 uint bscount(BSet *);
@@ -525,7 +556,6 @@ void elimsb(Fn *);
 
 /* cfg.c */
 Blk *newblk(void);
-void edgedel(Blk *, Blk **);
 void fillpreds(Fn *);
 void fillcfg(Fn *);
 void filldom(Fn *);
@@ -533,8 +563,20 @@ int sdom(Blk *, Blk *);
 int dom(Blk *, Blk *);
 void fillfron(Fn *);
 void loopiter(Fn *, void (*)(Blk *, Blk *));
+void filldomdpth(Fn *);
+Blk *lca(Blk *, Blk *);
 void fillloop(Fn *);
 void simpljmp(Fn *);
+void replacepreds(Blk *, Blk *, Blk *);
+void killblks(Fn *);
+void blkmerge(Fn *);
+int ifgraph(Blk *, Blk **, Blk **, Blk **);
+int ifjoin(Blk *, Blk **, Blk **, Blk **);
+int emptyblk(Blk *);
+void ifelim(Fn *);
+void clrbvisit(Fn *);
+int reaches(Fn *,Blk *, Blk *);
+int reachesnotvia(Fn *, Blk *, Blk *, Blk *);
 
 /* mem.c */
 void promote(Fn *);
@@ -552,15 +594,36 @@ int storesz(Ins *);
 void loadopt(Fn *);
 
 /* ssa.c */
+void adduse(Tmp *, int, Blk *, ...);
 void filluse(Fn *);
 void ssa(Fn *);
 void ssacheck(Fn *);
 
 /* copy.c */
-void copy(Fn *);
+int iswu1(Fn *, Ref);
+void narrowpars(Fn *);
+Ref copyref(Fn *, Blk *, Ins *);
 
 /* fold.c */
-void fold(Fn *);
+Ref foldref(Fn *, Ins *);
+
+/* gvn.c */
+extern Ref con01[2];
+int is0non0(Fn *, Blk *, Ref, int, int *);
+void gvn(Fn *);
+
+/* gcm.c */
+int isfixed(Fn *, Ins *);
+void gcm(Fn *);
+
+/* ins.c */
+void addins(Ins **, uint *, Ins *);
+void addbins(Blk *, Ins **, uint *);
+void nopunused(Fn *);
+void movins(Fn *, InsMov *, uint, int);
+
+/* reassoc.c */
+void reassoc(Fn *);
 
 /* simpl.c */
 void simpl(Fn *);

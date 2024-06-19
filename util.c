@@ -229,6 +229,24 @@ iscmp(int op, int *pk, int *pc)
 	return 1;
 }
 
+static int INVCMPWL[] = {
+	/*Oceqw*/Ocnew, /*Ocnew*/Oceqw,
+	/*Ocsgew*/Ocsltw, /*Ocsgtw*/Ocslew, /*Ocslew*/Ocsgtw, /*Ocsltw*/Ocsgew,
+	/*Ocugew*/Ocultw, /*Ocugtw*/Oculew, /*Oculew*/Ocugtw, /*Ocultw*/Ocugew,
+	/*Oceql*/Ocnel, /*Ocnel*/Oceql,
+	/*Ocsgel*/Ocsltl, /*Ocsgtl*/Ocslel, /*Ocslel*/Ocsgtl, /*Ocsltl*/Ocsgel,
+	/*Ocugel*/Ocultl, /*Ocugtl*/Oculel, /*Oculel*/Ocugtl, /*Ocultl*/Ocugel,
+};
+
+int
+invcmpwl(int cmp)
+{
+	assert(Oceqw <= cmp && cmp <= Ocultl);
+	return INVCMPWL[cmp - Oceqw];
+}
+
+
+
 int
 argcls(Ins *i, int n)
 {
@@ -338,6 +356,23 @@ phicls(int t, Tmp *tmp)
 	return t1;
 }
 
+uint
+phiargn(Phi *p, Blk *b)
+{
+	uint n;
+
+	for (n = 0; n < p->narg; n++)
+		if (p->blk[n] == b)
+			return n;
+	die("unreachable");
+}
+
+Ref
+phiarg(Phi *p, Blk *b)
+{
+	return p->arg[phiargn(p, b)];
+}
+
 Ref
 newtmp(char *prfx, int k,  Fn *fn)
 {
@@ -419,6 +454,27 @@ addcon(Con *c0, Con *c1, int m)
 		c0->bits.i += c1->bits.i * m;
 	}
 	return 1;
+}
+
+int
+isconbits(Fn *fn, Ref r, int64_t *v)
+{
+	Con *c;
+
+	if (rtype(r) == RCon) {
+		c = &fn->con[r.val];
+		if (c->type == CBits) {
+			*v = c->bits.i;
+			return 1;
+		}
+	}
+	return 0;
+}
+
+int
+istmpconbits(Fn *fn, Ins *i, int64_t *v)
+{
+	return rtype(i->arg[0]) == RTmp && isconbits(fn, i->arg[1], v);
 }
 
 void

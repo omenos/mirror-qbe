@@ -1,7 +1,7 @@
 #include "all.h"
 #include <stdarg.h>
 
-static void
+void
 adduse(Tmp *tmp, int ty, Blk *b, ...)
 {
 	Use *u;

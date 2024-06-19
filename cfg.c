@@ -39,37 +39,6 @@ prunephis(Fn *f)
 	}
 }
 
-void
-edgedel(Blk *bs, Blk **pbd)
-{
-	Blk *bd;
-	Phi *p;
-	uint a;
-	int mult;
-
-	bd = *pbd;
-	mult = 1 + (bs->s1 == bs->s2);
-	*pbd = 0;
-	if (!bd || mult > 1)
-		return;
-	for (p=bd->phi; p; p=p->link) {
-		for (a=0; p->blk[a]!=bs; a++)
-			assert(a+1<p->narg);
-		p->narg--;
-		memmove(&p->blk[a], &p->blk[a+1],
-			sizeof p->blk[0] * (p->narg-a));
-		memmove(&p->arg[a], &p->arg[a+1],
-			sizeof p->arg[0] * (p->narg-a));
-	}
-	if (bd->npred != 0) {
-		for (a=0; bd->pred[a]!=bs; a++)
-			assert(a+1<bd->npred);
-		bd->npred--;
-		memmove(&bd->pred[a], &bd->pred[a+1],
-			sizeof bd->pred[0] * (bd->npred-a));
-	}
-}
-
 static void
 addpred(Blk *bp, Blk *bc)
 {
@@ -299,6 +268,49 @@ multloop(Blk *hd, Blk *b)
 }
 
 void
+filldomdpth(Fn *fn)
+{
+	Blk *b, *dom;
+	uint dpth;
+
+	for (b=fn->start; b; b=b->link)
+		b->domdpth = -1;
+
+	fn->start->domdpth = 0;
+
+	for (b=fn->start; b; b=b->link) {
+		if (b->domdpth != -1)
+			continue;
+		dpth = 1;
+		for (dom = b->idom; dom->domdpth == -1; dom = dom->idom)
+			dpth++;
+		dpth += dom->domdpth;
+		b->domdpth = dpth;
+		for (dom = b->idom; dom->domdpth == -1; dom = dom->idom)
+			dom->domdpth = --dpth;
+	}
+}
+
+/* least common ancestor in dom tree */
+Blk *
+lca(Blk *b1, Blk *b2)
+{
+	if (!b1)
+		return b2;
+	if (!b2)
+		return b1;
+	while (b1->domdpth > b2->domdpth)
+		b1 = b1->idom;
+	while (b2->domdpth > b1->domdpth)
+		b2 = b2->idom;
+	while (b1 != b2) {
+		b1 = b1->idom;
+		b2 = b2->idom;
+	}
+	return b1;
+}
+
+void
 fillloop(Fn *fn)
 {
 	Blk *b;
@@ -358,3 +370,245 @@ simpljmp(Fn *fn)
 	*p = ret;
 	free(uf);
 }
+
+static void
+replacepred(Blk **blks, uint nblk, Blk *to, Blk *from)
+{
+	uint n;
+	for(n=0; n<nblk; n++)
+		if (blks[n] == from) {
+			blks[n] = to;
+			break;
+		}
+	assert(n != nblk);
+}
+
+/* replace b->pred[] and p->blk[] entries */
+void
+replacepreds(Blk *s, Blk *to, Blk *from)
+{
+	Phi *p;
+
+	if (!s)
+		return;
+	assert(s->npred);
+	replacepred(s->pred, s->npred, to, from);
+	for (p = s->phi; p; p = p->link) {
+		assert(p->narg == s->npred);
+		replacepred(p->blk, p->narg, to, from);
+	}
+}
+
+/* remove marked-dead blks - marked as fn->rpo[id] == 0 */
+void
+killblks(Fn *fn)
+{
+	Blk **pb;
+
+	for (pb = &fn->start; *pb;)
+		if (fn->rpo[(*pb)->id])
+			pb = &(*pb)->link;
+		else
+			*pb = (*pb)->link;
+}
+
+/* merge linear jmp chains */
+/* requires rpo pred, breaks cfg use */
+void
+blkmerge(Fn *fn)
+{
+	uint bid, nins;
+	Blk *curb, *b;
+	Ins *vins;
+
+	if (debug['B'])
+		fputs("\n> Block merge:\n", stderr);
+
+	vins = vnew(0, sizeof vins[0], PFn);
+	curb = 0;
+	/* linear jmp chains will be consecutive in rpo */
+	for (bid=0; bid<fn->nblk; bid++) {
+		b = fn->rpo[bid];
+		if (curb == 0) {
+			curb = b;
+			nins = 0;
+		} else
+			fn->rpo[bid] = 0;
+		addbins(b, &vins, &nins);
+		/* note - there are cases where GVN does not eliminate singleton phis */
+		if (b->jmp.type != Jjmp || b->s1->npred != 1 || b->s1->phi) {
+			idup(curb, vins, nins);
+			curb->nins = nins;
+			curb->jmp = b->jmp;
+			replacepreds(b->s1, curb, b);
+			if (b->s1 != b->s2)
+				replacepreds(b->s2, curb, b);
+			curb->s1 = b->s1;
+			curb->s2 = b->s2;
+			curb = 0;
+		} else {
+			assert(b->s1->id == bid+1);
+			if (debug['B'])
+				fprintf(stderr, "    merging blocks @%s -> @%s\n", b->name, b->s1->name);
+		}
+	}
+	assert(curb == 0);
+	killblks(fn);
+}
+
+int
+lonesucc(Blk *b, Blk *s)
+{
+	assert(s);
+	if (s != b)
+	if (s->npred == 1)
+	if (s->pred[0] == b)
+	if (s->phi == 0)
+		return 1;
+	return 0;
+}
+
+int
+lonejmpsucc(Blk *b, Blk *s)
+{
+	return s->jmp.type == Jjmp && lonesucc(b, s);
+}
+
+/* (otherwise) isolated if-then[-else] graphlet */
+int
+ifgraph(Blk *ifb, Blk **pthenb, Blk **pelseb, Blk **pjoinb)
+{
+	if (ifb->jmp.type != Jjnz)
+		return 0;
+	assert(ifb->s1 && ifb->s2);
+	assert(ifb->s1 != ifb->s2); /* dubious */
+	*pthenb = ifb->s1;
+	*pelseb = ifb->s2;
+	*pjoinb = ifb->s1->s1;
+	if (ifb->s1 == ifb->s2->s1) {
+		/* empty then */
+		*pthenb = ifb;
+		*pjoinb = ifb->s1;
+	}
+	if (ifb->s1->s1 == ifb->s2)
+		/* empty else */
+		*pelseb = ifb;
+
+	if (*pthenb == ifb ||
+	    ((*pthenb)->s1 == *pjoinb && lonejmpsucc(ifb, *pthenb)))
+	if (*pelseb == ifb ||
+	    ((*pelseb)->s1 == *pjoinb && lonejmpsucc(ifb, *pelseb)))
+	/* there are cases where npred == 2 is not strictly needed - ifconvert for example */
+	if ((*pjoinb)->npred == 2)
+		return 1;
+
+	return 0;
+}
+
+/* join blk of if-then[-else] graphlet */
+int
+ifjoin(Blk *joinb, Blk **pifb, Blk **pthenb, Blk **pelseb)
+{
+	Blk *joinb1;
+
+	if (joinb->npred)
+	if (ifgraph(joinb->pred[0], pthenb, pelseb, &joinb1))
+	if (joinb == joinb1) {
+		*pifb = joinb->pred[0];
+		return 1;
+	}
+	if (joinb->npred && joinb->pred[0]->npred)
+	if (ifgraph(joinb->pred[0]->pred[0], pthenb, pelseb, &joinb1))
+	if (joinb == joinb1) {
+		*pifb = joinb->pred[0]->pred[0];
+		return 1;
+	}
+	return 0;
+}
+
+int
+emptyblk(Blk *b)
+{
+	Ins *i;
+
+	for (i = b->ins; i < &b->ins[b->nins]; i++)
+		if (i->op != Onop)
+		if (i->op != Odbgloc)
+			return 0;
+	return 1;
+}
+
+/* remove empty jnz graphlets */
+/* needs rpo; breaks cfg */
+void
+ifelim(Fn *fn)
+{
+	uint bid;
+	Blk *ifb, *thenb, *elseb, *joinb;
+
+	for (bid = 0; bid < fn->nblk; bid++) {
+		ifb = fn->rpo[bid];
+		if (ifb == 0)
+			continue;
+		if (ifgraph(ifb, &thenb, &elseb, &joinb))
+		if (joinb->phi == 0)
+		if (thenb == ifb || emptyblk(thenb))
+		if (elseb == ifb || emptyblk(elseb)) {
+			if (debug['B'])
+				fprintf(stderr, "    eliminating empty if @%s -> @%s, @%s -> @%s\n",
+					ifb->name, thenb->name, elseb->name, joinb->name);
+			if (thenb != ifb)
+				fn->rpo[thenb->id] = 0;
+			if (elseb != ifb)
+				fn->rpo[elseb->id] = 0;
+			ifb->jmp.type = Jjmp;
+			ifb->jmp.arg = R;
+			ifb->s1 = joinb;
+			ifb->s2 = 0;
+		}
+	}
+	killblks(fn);
+}
+
+void
+clrbvisit(Fn *fn)
+{
+	Blk *b;
+	for (b = fn->start; b; b = b->link)
+		b->visit = 0;
+}
+
+static int
+reaches1(Blk *b1, Blk *b2)
+{
+	assert(b2);
+	if (b1 == b2)
+		return 1;
+	if (b1 == 0 || b1->visit)
+		return 0;
+	b1->visit = 1;
+	return reaches1(b1->s1, b2) || reaches1(b1->s2, b2);
+}
+
+/* path from b1 to b2 not thru bnotvia? */
+/* uses b->visit */
+int
+reachesnotvia(Fn *fn, Blk *b1, Blk *b2, Blk *bnotvia)
+{
+	int rc;
+
+	if (bnotvia)
+		bnotvia->visit = 1;
+	rc = reaches1(b1, b2);
+	clrbvisit(fn);
+	return rc;
+}
+
+/* path from b1 to b2? */
+/* uses b->visit */
+int
+reaches(Fn *fn, Blk *b1, Blk *b2)
+{
+	return reachesnotvia(fn, b1, b2, 0);
+}
+

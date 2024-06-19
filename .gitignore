@@ -3,3 +3,4 @@ qbe
 config.h
 .comfile
 *.out
+*~
