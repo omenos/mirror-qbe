@@ -24,7 +24,7 @@ imm(Con *c, int k, int64_t *pn)
 	i = Iplo12;
 	if (n < 0) {
 		i = Inlo12;
-		n = -n;
+		n = -(uint64_t)n;
 	}
 	*pn = n;
 	if ((n & 0x000fff) == n)
