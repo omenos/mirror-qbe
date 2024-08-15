@@ -1219,6 +1219,7 @@ parse(FILE *f, char *path, void dbgfile(char *), void data(Dat *), void func(Fn 
 			dbgfile(tokval.str);
 			break;
 		case Tfunc:
+			lnk.align = 16;
 			func(parsefn(&lnk));
 			break;
 		case Tdata:
