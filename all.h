@@ -393,8 +393,10 @@ struct Fn {
 	Blk **rpo;
 	bits reg;
 	int slot;
+	int salign;
 	char vararg;
 	char dynalloc;
+	char leaf;
 	char name[NString];
 	Lnk lnk;
 };

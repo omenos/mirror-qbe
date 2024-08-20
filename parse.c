@@ -694,6 +694,7 @@ parseline(PState ps)
 		goto Ins;
 	}
 	if (op == Tcall) {
+		curf->leaf = 0;
 		arg[0] = parseref();
 		parserefl(1);
 		op = Ocall;
@@ -910,6 +911,7 @@ parsefn(Lnk *lnk)
 	curf->con[0].bits.i = 0xdeaddead;  /* UNDEF */
 	curf->con[1].type = CBits;
 	curf->lnk = *lnk;
+	curf->leaf = 1;
 	blink = &curf->start;
 	curf->retty = Kx;
 	if (peek() != Tglo)

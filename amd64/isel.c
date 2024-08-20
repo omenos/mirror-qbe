@@ -808,6 +808,7 @@ amd64_isel(Fn *fn)
 					die("alloc too large");
 				fn->tmp[i->to.val].slot = fn->slot;
 				fn->slot += sz;
+				fn->salign = 2 + al - Oalloc;
 				*i = (Ins){.op = Onop};
 			}
 
