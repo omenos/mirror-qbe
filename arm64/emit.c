@@ -160,7 +160,8 @@ emitf(char *s, Ins *i, E *e)
 	Ref r;
 	int k, c;
 	Con *pc;
-	uint n, sp;
+	uint64_t n;
+	uint sp;
 
 	fputc('\t', e->f);
 
@@ -217,10 +218,17 @@ emitf(char *s, Ins *i, E *e)
 				pc = &e->fn->con[r.val];
 				n = pc->bits.i;
 				assert(pc->type == CBits);
-				if (n & 0xfff000)
-					fprintf(e->f, "#%u, lsl #12", n>>12);
-				else
-					fprintf(e->f, "#%u", n);
+				if (n >> 24) {
+					assert(arm64_logimm(n, k));
+					fprintf(e->f, "#%"PRIu64, n);
+				} else if (n & 0xfff000) {
+					assert(!(n & ~0xfff000ull));
+					fprintf(e->f, "#%"PRIu64", lsl #12",
+						n>>12);
+				} else {
+					assert(!(n & ~0xfffull));
+					fprintf(e->f, "#%"PRIu64, n);
+				}
 				break;
 			}
 			break;
@@ -304,6 +312,7 @@ loadcon(Con *c, int r, int k, E *e)
 	rn = rname(r, k);
 	n = c->bits.i;
 	if (c->type == CAddr) {
+		rn = rname(r, Kl);
 		loadaddr(c, rn, e);
 		return;
 	}
