@@ -45,10 +45,11 @@ edgedel(Blk *bs, Blk **pbd)
 static void
 addpred(Blk *bp, Blk *bc)
 {
-	if (!bc->pred) {
-		bc->pred = alloc(bc->npred * sizeof bc->pred[0]);
-		bc->visit = 0;
-	}
+	if (bc->pred)
+		vgrow(&bc->pred, bc->npred);
+	else
+		bc->pred = vnew(bc->npred, sizeof bc->pred[0], PFn);
+	assert(bc->visit < bc->npred);
 	bc->pred[bc->visit++] = bp;
 }
 
@@ -60,7 +61,7 @@ fillpreds(Fn *f)
 
 	for (b=f->start; b; b=b->link) {
 		b->npred = 0;
-		b->pred = 0;
+		b->visit = 0;
 	}
 	for (b=f->start; b; b=b->link) {
 		if (b->s1)
