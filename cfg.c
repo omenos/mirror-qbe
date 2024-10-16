@@ -108,7 +108,10 @@ fillrpo(Fn *f)
 		b->id = -1u;
 	n = 1 + rporec(f->start, f->nblk-1);
 	f->nblk -= n;
-	f->rpo = alloc(f->nblk * sizeof f->rpo[0]);
+	if (f->rpo)
+		vgrow(&f->rpo, f->nblk);
+	else
+		f->rpo = vnew(f->nblk, sizeof f->rpo[0], PFn);
 	for (p=&f->start; (b=*p);) {
 		if (b->id == -1u) {
 			edgedel(b, &b->s1);
