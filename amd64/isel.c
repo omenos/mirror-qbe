@@ -828,8 +828,7 @@ amd64_isel(Fn *fn)
 		seljmp(b, fn);
 		for (i=&b->ins[b->nins]; i!=b->ins;)
 			sel(*--i, num, fn);
-		b->nins = &insb[NIns] - curi;
-		idup(&b->ins, curi, b->nins);
+		idup(b, curi, &insb[NIns]-curi);
 	}
 	free(num);
 

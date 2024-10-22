@@ -545,8 +545,7 @@ split(Fn *fn, Blk *b)
 
 	++fn->nblk;
 	bn = newblk();
-	bn->nins = &insb[NIns] - curi;
-	idup(&bn->ins, curi, bn->nins);
+	idup(bn, curi, &insb[NIns]-curi);
 	curi = &insb[NIns];
 	bn->visit = ++b->visit;
 	strf(bn->name, "%s.%d", b->name, b->visit);
@@ -791,8 +790,7 @@ arm64_abi(Fn *fn)
 		if (b == fn->start)
 			for (; il; il=il->link)
 				emiti(il->i);
-		b->nins = &insb[NIns] - curi;
-		idup(&b->ins, curi, b->nins);
+		idup(b, curi, &insb[NIns]-curi);
 	} while (b != fn->start);
 
 	if (debug['A']) {
@@ -843,8 +841,7 @@ apple_extsb(Fn *fn)
 					emit(op, Kw, i->to, i->arg[0], R);
 				}
 		}
-		b->nins = &insb[NIns] - curi;
-		idup(&b->ins, curi, b->nins);
+		idup(b, curi, &insb[NIns]-curi);
 	}
 
 	if (debug['A']) {

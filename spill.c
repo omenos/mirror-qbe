@@ -517,8 +517,7 @@ spill(Fn *fn)
 				p->to = slot(p->to.val);
 		}
 		bscopy(b->in, v);
-		b->nins = &insb[NIns] - curi;
-		idup(&b->ins, curi, b->nins);
+		idup(b, curi, &insb[NIns]-curi);
 	}
 
 	/* align the locals to a 16 byte boundary */

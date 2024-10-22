@@ -582,8 +582,7 @@ findblk(char *name)
 static void
 closeblk()
 {
-	curb->nins = curi - insb;
-	idup(&curb->ins, insb, curb->nins);
+	idup(curb, insb, curi-insb);
 	blink = &curb->link;
 	curi = insb;
 }

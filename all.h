@@ -478,7 +478,7 @@ int isreg(Ref);
 int iscmp(int, int *, int *);
 void emit(int, int, Ref, Ref, Ref);
 void emiti(Ins);
-void idup(Ins **, Ins *, ulong);
+void idup(Blk *, Ins *, ulong);
 Ins *icpy(Ins *, Ins *, ulong);
 int cmpop(int);
 int cmpneg(int);

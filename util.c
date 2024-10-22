@@ -253,14 +253,15 @@ emiti(Ins i)
 }
 
 void
-idup(Ins **pd, Ins *s, ulong n)
+idup(Blk *b, Ins *s, ulong n)
 {
-	if (*pd)
-		vgrow(pd, n);
+	if (b->ins)
+		vgrow(&b->ins, n);
 	else
-		*pd = vnew(n, sizeof(Ins), PFn);
+		b->ins = vnew(n, sizeof(Ins), PFn);
 	if (n)
-		memcpy(*pd, s, n * sizeof(Ins));
+		memcpy(b->ins, s, n * sizeof(Ins));
+	b->nins = n;
 }
 
 Ins *

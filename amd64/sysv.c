@@ -508,8 +508,7 @@ split(Fn *fn, Blk *b)
 
 	++fn->nblk;
 	bn = newblk();
-	bn->nins = &insb[NIns] - curi;
-	idup(&bn->ins, curi, bn->nins);
+	idup(bn, curi, &insb[NIns]-curi);
 	curi = &insb[NIns];
 	bn->visit = ++b->visit;
 	strf(bn->name, "%s.%d", b->name, b->visit);
@@ -711,8 +710,7 @@ amd64_sysv_abi(Fn *fn)
 		if (b == fn->start)
 			for (; ral; ral=ral->link)
 				emiti(ral->i);
-		b->nins = &insb[NIns] - curi;
-		idup(&b->ins, curi, b->nins);
+		idup(b, curi, &insb[NIns]-curi);
 	} while (b != fn->start);
 
 	if (debug['A']) {

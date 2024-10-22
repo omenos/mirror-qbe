@@ -642,8 +642,7 @@ rv64_abi(Fn *fn)
 		if (b == fn->start)
 			for (; il; il=il->link)
 				emiti(il->i);
-		b->nins = &insb[NIns] - curi;
-		idup(&b->ins, curi, b->nins);
+		idup(b, curi, &insb[NIns]-curi);
 	} while (b != fn->start);
 
 	if (debug['A']) {

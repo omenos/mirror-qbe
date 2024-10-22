@@ -481,8 +481,7 @@ loadopt(Fn *fn)
 			vgrow(&ib, ++nt);
 			ib[nt-1] = *i;
 		}
-		b->nins = nt;
-		idup(&b->ins, ib, nt);
+		idup(b, ib, nt);
 	}
 	vfree(ib);
 	vfree(ilog);

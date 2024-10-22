@@ -118,9 +118,7 @@ simpl(Fn *fn)
 			--i;
 			ins(&i, &new, b, fn);
 		}
-		if (new) {
-			b->nins = &insb[NIns] - curi;
-			idup(&b->ins, curi, b->nins);
-		}
+		if (new)
+			idup(b, curi, &insb[NIns]-curi);
 	}
 }
