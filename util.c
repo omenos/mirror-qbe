@@ -255,7 +255,10 @@ emiti(Ins i)
 void
 idup(Ins **pd, Ins *s, ulong n)
 {
-	*pd = alloc(n * sizeof(Ins));
+	if (*pd)
+		vgrow(pd, n);
+	else
+		*pd = vnew(n, sizeof(Ins), PFn);
 	if (n)
 		memcpy(*pd, s, n * sizeof(Ins));
 }

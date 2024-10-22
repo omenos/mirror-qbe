@@ -670,7 +670,7 @@ amd64_sysv_abi(Fn *fn)
 			break;
 	fa = selpar(fn, b->ins, i);
 	n = b->nins - (i - b->ins) + (&insb[NIns] - curi);
-	i0 = alloc(n * sizeof(Ins));
+	i0 = vnew(n, sizeof(Ins), PFn);
 	ip = icpy(ip = i0, curi, &insb[NIns] - curi);
 	ip = icpy(ip, i, &b->ins[b->nins] - i);
 	b->nins = n;

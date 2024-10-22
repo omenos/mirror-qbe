@@ -744,7 +744,7 @@ arm64_abi(Fn *fn)
 			break;
 	p = selpar(fn, b->ins, i);
 	n = b->nins - (i - b->ins) + (&insb[NIns] - curi);
-	i0 = alloc(n * sizeof(Ins));
+	i0 = vnew(n, sizeof(Ins), PFn);
 	ip = icpy(ip = i0, curi, &insb[NIns] - curi);
 	ip = icpy(ip, i, &b->ins[b->nins] - i);
 	b->nins = n;
