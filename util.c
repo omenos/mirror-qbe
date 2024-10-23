@@ -268,7 +268,7 @@ Ins *
 icpy(Ins *d, Ins *s, ulong n)
 {
 	if (n)
-		memcpy(d, s, n * sizeof(Ins));
+		memmove(d, s, n * sizeof(Ins));
 	return d + n;
 }
 
