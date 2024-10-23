@@ -50,6 +50,7 @@ Target T_rv64 = {
 	.emitfn = rv64_emitfn,
 	.emitfin = elf_emitfin,
 	.asloc = ".L",
+	.cansel = 0,
 };
 
 MAKESURE(rsave_size_ok, sizeof rv64_rsave == (NGPS+NFPS+1) * sizeof(int));

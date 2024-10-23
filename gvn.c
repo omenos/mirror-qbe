@@ -247,6 +247,10 @@ dedupins(Fn *fn, Blk *b, Ins *i)
 	if (i->op == Onop || pinned(i))
 		return;
 
+	/* when sel instructions are inserted
+	 * before gvn, we may want to optimize
+	 * them here */
+	assert(i->op != Osel0);
 	assert(!req(i->to, R));
 	assoccon(fn, b, i);
 

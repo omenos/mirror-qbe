@@ -28,6 +28,7 @@ amd64_memargs(int op)
 	.abi1 = amd64_sysv_abi, \
 	.isel = amd64_isel, \
 	.emitfn = amd64_emitfn, \
+	.cansel = 1, \
 
 Target T_amd64_sysv = {
 	.name = "amd64_sysv",

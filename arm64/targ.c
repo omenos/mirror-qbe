@@ -40,6 +40,7 @@ arm64_memargs(int op)
 	.isel = arm64_isel, \
 	.abi1 = arm64_abi, \
 	.emitfn = arm64_emitfn, \
+	.cansel = 0, \
 
 Target T_arm64 = {
 	.name = "arm64",

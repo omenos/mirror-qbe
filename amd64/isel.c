@@ -163,6 +163,10 @@ fixarg(Ref *r, int k, Ins *i, Fn *fn)
 			m->base = r0;
 		}
 	}
+	else if(i && INRANGE(i->op, Oxselieq, Oxseliult) && rtype(*r) == RCon) {
+		r1 = newtmp("isel", i->cls, fn);
+		emit(Ocopy, i->cls, r1, *r, R);
+	}
 	*r = r1;
 }
 
@@ -425,6 +429,24 @@ sel(Ins i, Num *tn, Fn *fn)
 	case Oexts:
 	case Otruncd:
 	case Ocast:
+	case Oxselieq:
+	case Oxseline:
+	case Oxselisge:
+	case Oxselisgt:
+	case Oxselisle:
+	case Oxselislt:
+	case Oxseliuge:
+	case Oxseliugt:
+	case Oxseliule:
+	case Oxseliult:
+	case Oxselfeq:
+	case Oxselfge:
+	case Oxselfgt:
+	case Oxselfle:
+	case Oxselflt:
+	case Oxselfne:
+	case Oxselfo:
+	case Oxselfuo:
 	case_OExt:
 Emit:
 		emiti(i);
@@ -491,6 +513,80 @@ flagi(Ins *i0, Ins *i)
 		return 0;
 	}
 	return 0;
+}
+
+static Ins*
+selsel(Fn *fn, Blk *b, Ins *i, Num *tn)
+{
+	Ref r, cr0, cr1;
+	int c, k, swap, gencmp, gencpy;
+	Ins *isel0, *isel1, *fi;
+	Tmp *t;
+
+	assert(i->op == Osel1);
+	for (isel0 = i; b->ins < isel0; isel0--) {
+		if (isel0->op == Osel0)
+			break;
+		assert(isel0->op == Osel1);
+	}
+	assert(isel0->op == Osel0);
+	r = isel0->arg[0];
+	assert(rtype(r) == RTmp);
+	t = &fn->tmp[r.val];
+	fi = flagi(b->ins, isel0);
+	cr0 = cr1 = R;
+	gencmp = gencpy = swap = 0;
+	k = Kw;
+	c = Cine;
+	if (!fi || !req(fi->to, r)) {
+		gencmp = 1;
+		cr0 = r;
+		cr1 = CON_Z;
+	} else if (iscmp(fi->op, &k, &c)
+		   && c != NCmpI+Cfeq /* see sel() */
+		   && c != NCmpI+Cfne) {
+		swap = cmpswap(fi->arg, c);
+		if (swap)
+			c = cmpop(c);
+		if (t->nuse == 1) {
+			gencmp = 1;
+			cr0 = fi->arg[0];
+			cr1 = fi->arg[1];
+			*fi = (Ins){.op = Onop};
+		}
+	} else if (fi->op == Oand && t->nuse == 1
+		&& (rtype(fi->arg[0]) == RTmp ||
+		    rtype(fi->arg[1]) == RTmp)) {
+		fi->op = Oxtest;
+		fi->to = R;
+		if (rtype(fi->arg[1]) == RCon) {
+			r = fi->arg[1];
+			fi->arg[1] = fi->arg[0];
+			fi->arg[0] = r;
+		}
+	} else {
+		/* since flags are not tracked in liveness,
+		 * the result of the flag-setting instruction
+		 * has to be marked as live
+		 */
+		if (t->nuse == 1)
+			gencpy = 1;
+	}
+	/* generate conditional moves */
+	for (isel1 = i; isel0 < isel1; --isel1) {
+		isel1->op = Oxselieq+c;
+		sel(*isel1, tn, fn);
+	}
+	if (gencmp) {
+		assert(!gencpy);
+		selcmp((Ref[2]){cr0, cr1}, k, swap, fn);
+	}
+	if (gencpy) {
+		assert(!gencmp);
+		emit(Ocopy, Kw, R, r, R);
+	}
+	*isel0 = (Ins){.op = Onop};
+	return isel0;
 }
 
 static void
@@ -826,8 +922,14 @@ amd64_isel(Fn *fn)
 		memset(num, 0, n * sizeof num[0]);
 		anumber(num, b, fn->con);
 		seljmp(b, fn);
-		for (i=&b->ins[b->nins]; i!=b->ins;)
-			sel(*--i, num, fn);
+		for (i=&b->ins[b->nins]; i!=b->ins;) {
+			--i;
+			assert(i->op != Osel0);
+			if (i->op == Osel1)
+				i = selsel(fn, b, i, num);
+			else
+				sel(*i, num, fn);
+		}
 		idup(b, curi, &insb[NIns]-curi);
 	}
 	free(num);

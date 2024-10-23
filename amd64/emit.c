@@ -576,6 +576,43 @@ emitins(Ins i, E *e)
 	case Odbgloc:
 		emitdbgloc(i.arg[0].val, i.arg[1].val, e->f);
 		break;
+	case Oxselieq:
+	case Oxseline:
+	case Oxselisge:
+	case Oxselisgt:
+	case Oxselisle:
+	case Oxselislt:
+	case Oxseliuge:
+	case Oxseliugt:
+	case Oxseliule:
+	case Oxseliult:
+	case Oxselfeq:
+	case Oxselfge:
+	case Oxselfgt:
+	case Oxselfle:
+	case Oxselflt:
+	case Oxselfne:
+	case Oxselfo:
+	case Oxselfuo:
+	{
+		// TODO - how to do this "properly"?
+		static char *F0[] = {
+			 "z", "nz", "ge",  "g", "le",  "l", "ae",  "a", "be",  "b",
+			"nz", "ae",  "a", "be",  "b",  "nz",  "p", "np"
+		};
+		static char *F1[] = {
+			"nz", "z",  "l", "le",  "g", "ge",  "b", "be",  "a", "ae",
+			 "z", "b", "be",  "a", "ae",  "z", "p",  "np"
+		};
+		char ins[16];
+		sprintf(ins, "cmov%s %%1, %%=", F1[i.op-Oxselieq]);
+		if (req(i.to, i.arg[1]))
+			sprintf(ins, "cmov%s %%0, %%=", F0[i.op-Oxselieq]);
+		else if (!req(i.to, i.arg[0]))
+			emitf("mov %0, %=", &i, e);
+		emitf(ins, &i, e);
+		break;
+	}
 	}
 }
 

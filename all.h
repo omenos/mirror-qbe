@@ -62,6 +62,7 @@ struct Target {
 	void (*emitfin)(FILE *);
 	char asloc[4];
 	char assym[4];
+	uint cansel:1;
 };
 
 #define BIT(n) ((bits)1 << (n))
@@ -594,6 +595,9 @@ void gvn(Fn *);
 /* gcm.c */
 int pinned(Ins *);
 void gcm(Fn *);
+
+/* ifopt.c */
+void ifconvert(Fn *fn);
 
 /* simpl.c */
 void simpl(Fn *);

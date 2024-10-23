@@ -11,6 +11,7 @@ char debug['Z'+1] = {
 	['N'] = 0, /* ssa construction */
 	['C'] = 0, /* copy elimination */
 	['F'] = 0, /* constant folding */
+	['K'] = 0, /* if-conversion */
 	['A'] = 0, /* abi lowering */
 	['I'] = 0, /* instruction selection */
 	['L'] = 0, /* liveness */
@@ -81,6 +82,13 @@ func(Fn *fn)
 	gcm(fn);
 	filluse(fn);
 	ssacheck(fn);
+	if (T.cansel) {
+		ifconvert(fn);
+		fillcfg(fn);
+		filluse(fn);
+		filldom(fn);
+		ssacheck(fn);
+	}
 	T.abi1(fn);
 	simpl(fn);
 	fillcfg(fn);
