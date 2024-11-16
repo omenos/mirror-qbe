@@ -77,38 +77,35 @@ fillpreds(Fn *f)
 	}
 }
 
-static int
-rporec(Blk *b, uint x)
+static void
+porec(Blk *b, uint *npo)
 {
 	Blk *s1, *s2;
 
 	if (!b || b->id != -1u)
-		return x;
-	b->id = 1;
+		return;
+	b->id = 0; /* marker */
 	s1 = b->s1;
 	s2 = b->s2;
 	if (s1 && s2 && s1->loop > s2->loop) {
 		s1 = b->s2;
 		s2 = b->s1;
 	}
-	x = rporec(s1, x);
-	x = rporec(s2, x);
-	b->id = x;
-	assert(x != -1u);
-	return x - 1;
+	porec(s1, npo);
+	porec(s2, npo);
+	b->id = (*npo)++;
 }
 
-/* fill the rpo information */
+/* fill the rpo information; prune dead blks */
 void
 fillrpo(Fn *f)
 {
-	uint n;
 	Blk *b, **p;
 
 	for (b=f->start; b; b=b->link)
 		b->id = -1u;
-	n = 1 + rporec(f->start, f->nblk-1);
-	f->nblk -= n;
+	f->nblk = 0;
+	porec(f->start, &f->nblk);
 	if (f->rpo)
 		vgrow(&f->rpo, f->nblk);
 	else
@@ -119,7 +116,7 @@ fillrpo(Fn *f)
 			edgedel(b, &b->s2);
 			*p = b->link;
 		} else {
-			b->id -= n;
+			b->id = f->nblk-b->id-1; /* po -> rpo */
 			f->rpo[b->id] = b;
 			p = &b->link;
 		}
