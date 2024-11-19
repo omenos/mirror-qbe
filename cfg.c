@@ -11,6 +11,34 @@ newblk()
 	return b;
 }
 
+/* TODO - this never seems to do anything??? */
+static void
+prunephis(Fn *f)
+{
+	Blk *b;
+	Phi *p, **pp;
+	uint na, na0;
+
+	for (b = f->start; b; b = b->link) {
+		assert(b->id < f->nblk);
+		for (pp = &b->phi; (*pp);) {
+			p = *pp;
+			for (na = na0 = 0; na < p->narg; na++)
+				if (p->blk[na]->id != -1u) {
+					p->blk[na0] = p->blk[na];
+					p->arg[na0] = p->arg[na];
+					na0++;
+				}
+			if (na0 == 0) {
+				*pp = p->link;
+			} else {
+				p->narg = na0;
+				pp = &p->link;
+			}
+		}
+	}
+}
+
 void
 edgedel(Blk *bs, Blk **pbd)
 {
@@ -53,7 +81,7 @@ addpred(Blk *bp, Blk *bc)
 	bc->pred[bc->npred-1] = bp;
 }
 
-/* fill predecessors information in blocks */
+/* fill predecessors information in blocks; prune dead phi refs */
 void
 fillpreds(Fn *f)
 {
@@ -67,6 +95,8 @@ fillpreds(Fn *f)
 		if (b->s2 && b->s2 != b->s1)
 			addpred(b, b->s2);
 	}
+	/* TODO - this never seems to do anything??? */
+	prunephis(f);
 }
 
 static void
@@ -89,7 +119,7 @@ porec(Blk *b, uint *npo)
 }
 
 /* fill the rpo information; prune dead blks */
-void
+static void
 fillrpo(Fn *f)
 {
 	Blk *b, **p;
@@ -104,8 +134,6 @@ fillrpo(Fn *f)
 		f->rpo = vnew(f->nblk, sizeof f->rpo[0], PFn);
 	for (p=&f->start; (b=*p);) {
 		if (b->id == -1u) {
-			edgedel(b, &b->s1);
-			edgedel(b, &b->s2);
 			*p = b->link;
 		} else {
 			b->id = f->nblk-b->id-1; /* po -> rpo */
@@ -113,6 +141,14 @@ fillrpo(Fn *f)
 			p = &b->link;
 		}
 	}
+}
+
+/* fill rpo, preds; prune dead blks, prune dead blk refs from phis */
+void
+fillcfg(Fn *f)
+{
+	fillrpo(f);
+	fillpreds(f);
 }
 
 /* for dominators computation, read

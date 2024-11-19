@@ -527,7 +527,7 @@ void elimsb(Fn *);
 Blk *newblk(void);
 void edgedel(Blk *, Blk **);
 void fillpreds(Fn *);
-void fillrpo(Fn *);
+void fillcfg(Fn *);
 void filldom(Fn *);
 int sdom(Blk *, Blk *);
 int dom(Blk *, Blk *);
