@@ -155,6 +155,24 @@ vgrow(void *vp, ulong len)
 }
 
 void
+addins(Ins **pvins, uint *pnins, Ins *i)
+{
+	if (i->op == Onop)
+		return;
+	vgrow(pvins, ++(*pnins));
+	(*pvins)[(*pnins)-1] = *i;
+}
+
+void
+addbins(Blk *b, Ins **pvins, uint *pnins)
+{
+	Ins *i;
+
+	for (i = b->ins; i < &b->ins[b->nins]; i++)
+		addins(pvins, pnins, i);
+}
+
+void
 strf(char str[NString], char *s, ...)
 {
 	va_list ap;

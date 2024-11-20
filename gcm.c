@@ -452,7 +452,6 @@ cleartmps(Fn *fn)
 	for (t=&fn->tmp[Tmp0]; t < &fn->tmp[fn->ntmp]; t++) {
 		t->visit = 0;
 		t->gcmbid = NOBID;
-		t->gcminsn = -1u; // TODO - get rid
 	}
 }
 
@@ -465,9 +464,6 @@ gcm(Fn *fn)
 {
 	uint bid;
 
-	/* fprintf(stderr, "\n\nBefore gcm:\n\n"); */
-	/* printfn(fn, stderr); */
-
 	filldomdpth(fn);
 	fillloop(fn);
 
@@ -477,28 +473,12 @@ gcm(Fn *fn)
 	for (bid=0; bid<fn->nblk; bid++)
 		lateblk(fn, bid);
 
-	/* fprintf(stderr, "\n\nBefore gcmmove/fixub4d:\n\n"); */
-	/* printfn(fn, stderr); */
-
 	gcmmove(fn);
-	cleartmps(fn);
-	/* filluse(fn); */
-	/* fixub4d(fn); */
-
-	/* fprintf(stderr, "\n\nAfter gcmmove/fixub4d:\n\n"); */
-	/* printfn(fn, stderr); */
-
-	//fillcfg(fn);
+	cleartmps(fn); /* filluse() uses visit */
 	filluse(fn);
 	reassoc(fn);
-
-	/* cleartmps(fn); */
 	filluse(fn);
 	fixub4d(fn);
-	
-	/* delete (now) unused ins  - already done later??? */
-	filluse(fn);
-	nopunused(fn);
 	
 	if (debug['G']) {
 		fprintf(stderr, "\n> After GCM:\n");

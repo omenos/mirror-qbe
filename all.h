@@ -355,8 +355,6 @@ struct Tmp {
 	} width;
 	int visit;
 	uint gcmbid;
-	uint gcminsn; // TODO get rid
-	uint gcmdefinsn; // TODO get rid
 };
 
 struct Con {
@@ -463,20 +461,6 @@ struct Dat {
 	char isstr;
 };
 
-typedef struct InsLoc InsLoc;
-
-struct InsLoc {
-	uint bid;
-	uint insn;
-};
-
-typedef struct InsMov InsMov;
-
-struct InsMov {
-	InsLoc from;
-	InsLoc to;
-};
-
 /* main.c */
 extern Target T;
 extern char debug['Z'+1];
@@ -497,6 +481,8 @@ void freeall(void);
 void *vnew(ulong, size_t, Pool);
 void vfree(void *);
 void vgrow(void *, ulong);
+void addins(Ins **, uint *, Ins *);
+void addbins(Blk *, Ins **, uint *);
 void strf(char[NString], char *, ...);
 uint32_t intern(char *);
 char *str(uint32_t);
@@ -615,12 +601,6 @@ void gvn(Fn *);
 /* gcm.c */
 int isfixed(Fn *, Ins *);
 void gcm(Fn *);
-
-/* ins.c */
-void addins(Ins **, uint *, Ins *);
-void addbins(Blk *, Ins **, uint *);
-void nopunused(Fn *);
-void movins(Fn *, InsMov *, uint, int);
 
 /* reassoc.c */
 void reassoc(Fn *);
