@@ -595,6 +595,9 @@ void gvn(Fn *);
 int pinned(Ins *);
 void gcm(Fn *);
 
+/* loopopt.c */
+void loopopt(Fn *fn);
+
 /* simpl.c */
 void simpl(Fn *);
 

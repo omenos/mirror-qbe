@@ -81,6 +81,8 @@ func(Fn *fn)
 	gcm(fn);
 	filluse(fn);
 	ssacheck(fn);
+	loopopt(fn);
+	filluse(fn);
 	T.abi1(fn);
 	simpl(fn);
 	fillcfg(fn);
