@@ -85,6 +85,8 @@ func(Fn *fn)
 	gcm(fn);
 	filluse(fn);
 	ssacheck(fn);
+	loopopt(fn);
+	filluse(fn);
 	if (T.cansel) {
 		ifconvert(fn);
 		fillcfg(fn);

@@ -606,6 +606,9 @@ void gcm(Fn *);
 /* ifopt.c */
 void ifconvert(Fn *fn);
 
+/* loopopt.c */
+void loopopt(Fn *fn);
+
 /* simpl.c */
 void simpl(Fn *);
 
