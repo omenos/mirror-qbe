@@ -90,7 +90,7 @@ isfloatv(Typ *t, char *cls)
 static void
 typclass(Class *c, Typ *t, int *gp, int *fp)
 {
-	uint64_t sz;
+	uint64_t sz, hfasz;
 	uint n;
 
 	sz = (t->size + 7) & -8;
@@ -103,7 +103,21 @@ typclass(Class *c, Typ *t, int *gp, int *fp)
 	if (t->align > 3)
 		err("alignments larger than 8 are not supported");
 
-	if (t->isdark || sz > 16 || sz == 0) {
+	c->size = sz;
+	c->hfa.base = Kx;
+	c->ishfa = isfloatv(t, &c->hfa.base);
+	hfasz = t->size/(KWIDE(c->hfa.base) ? 8 : 4);
+	c->ishfa &= !t->isdark && hfasz <= 4;
+	c->hfa.size = hfasz;
+
+	if (c->ishfa) {
+		for (n=0; n<hfasz; n++, c->nfp++) {
+			c->reg[n] = *fp++;
+			c->cls[n] = c->hfa.base;
+		}
+		c->nreg = n;
+	}
+	else if (t->isdark || sz > 16 || sz == 0) {
 		/* large structs are replaced by a
 		 * pointer to some caller-allocated
 		 * memory */
@@ -112,26 +126,14 @@ typclass(Class *c, Typ *t, int *gp, int *fp)
 		c->ngp = 1;
 		*c->reg = *gp;
 		*c->cls = Kl;
-		return;
 	}
-
-	c->size = sz;
-	c->hfa.base = Kx;
-	c->ishfa = isfloatv(t, &c->hfa.base);
-	c->hfa.size = t->size/(KWIDE(c->hfa.base) ? 8 : 4);
-
-	if (c->ishfa)
-		for (n=0; n<c->hfa.size; n++, c->nfp++) {
-			c->reg[n] = *fp++;
-			c->cls[n] = c->hfa.base;
-		}
-	else
+	else {
 		for (n=0; n<sz/8; n++, c->ngp++) {
 			c->reg[n] = *gp++;
 			c->cls[n] = Kl;
 		}
-
-	c->nreg = n;
+		c->nreg = n;
+	}
 }
 
 static void

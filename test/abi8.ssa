@@ -10,6 +10,7 @@ type :sd = { s, d }    # ditto
 type :ww = { w, w }    # in a single gp reg
 type :lb = { l, b }    # in two gp regs
 type :big = { b 17 }   # by reference
+type :ddd = { d, d, d} # big hfa on arm64
 
 data $ctoqbestr = { b "c->qbe(%d)", b 0 }
 data $emptystr = { b 0 }
@@ -112,6 +113,14 @@ function $qfn10(w %p0, w %p1, w %p2, w %p3, w %p4, w %p5, w %p6, w %p7, :big %p8
 	%r1 =w call $puts(l $emptystr)
 	ret
 }
+export
+function $qfn11(:ddd %p0) {
+@start
+	%r0 =w call $printf(l $ctoqbestr, ..., w 11)
+	call $pddd(l %p0)
+	%r1 =w call $puts(l $emptystr)
+	ret
+}
 
 export
 function w $main() {
@@ -128,6 +137,7 @@ function w $main() {
 	call $cfn8(w 0, w 0, w 0, w 0, w 0, w 0, w 0, w 0, :lb $lb)
 	call $cfn9(:big $big)
 	call $cfn10(w 0, w 0, w 0, w 0, w 0, w 0, w 0, w 0, :big $big, s s_10.10, l 11)
+	call $cfn11(:ddd $ddd)
 
 	ret 0
 }
@@ -142,6 +152,7 @@ function w $main() {
 # typedef struct { int w0, w1; } Sww;
 # typedef struct { long l; char b; } Slb;
 # typedef struct { char b[17]; } Sbig;
+# typedef struct { double d0, d1, d2; } Sddd;
 # Sfi1 zfi1, fi1 = { -123, 4.56 };
 # Sfi2 zfi2, fi2 = { 1.23, 456 };
 # Sfi3 zfi3, fi3 = { 3.45, 567 };
@@ -150,6 +161,7 @@ function w $main() {
 # Sww zww, ww = { -123, -456 };
 # Slb zlb, lb = { 123, 'z' };
 # Sbig zbig, big = { "abcdefhijklmnopqr" };
+# Sddd zddd, ddd = { 1.23, 45.6, 7.89 };
 # void pfi1(Sfi1 *s) { printf(" { %d, %g }", s->h, s->s); }
 # void pfi2(Sfi2 *s) { printf(" { %g, %d }", s->s, s->w); }
 # void pfi3(Sfi3 *s) { printf(" { %g, %d }", s->s, s->u.w); }
@@ -158,6 +170,7 @@ function w $main() {
 # void pww(Sww *s) { printf(" { %d, %d }", s->w0, s->w1); }
 # void plb(Slb *s) { printf(" { %ld, '%c' }", s->l, s->b); }
 # void pbig(Sbig *s) { printf(" \"%.17s\"", s->b); }
+# void pddd(Sddd *s) { printf(" { %g, %g, %g }", s->d0, s->d1, s->d2); }
 # void pw(int w) { printf(" %d", w); }
 # void pl(long l) { printf(" %ld", l); }
 # void ps(float s) { printf(" %g", s); }
@@ -229,6 +242,12 @@ function w $main() {
 # 	pbig(&p8); ps(p9); pl(p10); puts("");
 # 	qfn10(p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10);
 # }
+# extern void qfn11(Sddd);
+# void cfn11(Sddd p0) {
+# 	printf("qbe->c(%d)", 11);
+# 	pddd(&p0); puts("");
+# 	qfn11(p0);
+# }
 # <<<
 
 # >>> output
@@ -254,4 +273,6 @@ function w $main() {
 # c->qbe(9) "abcdefhijklmnopqr"
 # qbe->c(10) "abcdefhijklmnopqr" 10.1 11
 # c->qbe(10) "abcdefhijklmnopqr" 10.1 11
+# qbe->c(11) { 1.23, 45.6, 7.89 }
+# c->qbe(11) { 1.23, 45.6, 7.89 }
 # <<<
