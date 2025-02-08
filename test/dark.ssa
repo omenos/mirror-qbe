@@ -1,4 +1,4 @@
-# skip arm64 arm64_apple rv64
+# skip arm64 arm64_apple rv64 amd64_win
 # a hack example,
 # we use a dark type to get
 # a pointer to the stack.

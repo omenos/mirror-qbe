@@ -150,7 +150,7 @@ function w $main() {
 # typedef struct { float s0, s1; } Sss;
 # typedef struct { float s; double d; } Ssd;
 # typedef struct { int w0, w1; } Sww;
-# typedef struct { long l; char b; } Slb;
+# typedef struct { long long l; char b; } Slb;
 # typedef struct { char b[17]; } Sbig;
 # typedef struct { double d0, d1, d2; } Sddd;
 # Sfi1 zfi1, fi1 = { -123, 4.56 };
@@ -168,11 +168,11 @@ function w $main() {
 # void pss(Sss *s) { printf(" { %g, %g }", s->s0, s->s1); }
 # void psd(Ssd *s) { printf(" { %g, %g }", s->s, s->d); }
 # void pww(Sww *s) { printf(" { %d, %d }", s->w0, s->w1); }
-# void plb(Slb *s) { printf(" { %ld, '%c' }", s->l, s->b); }
+# void plb(Slb *s) { printf(" { %lld, '%c' }", s->l, s->b); }
 # void pbig(Sbig *s) { printf(" \"%.17s\"", s->b); }
 # void pddd(Sddd *s) { printf(" { %g, %g, %g }", s->d0, s->d1, s->d2); }
 # void pw(int w) { printf(" %d", w); }
-# void pl(long l) { printf(" %ld", l); }
+# void pl(long long l) { printf(" %lld", l); }
 # void ps(float s) { printf(" %g", s); }
 # void pd(double d) { printf(" %g", d); }
 # /* --------------------------- */
@@ -206,8 +206,8 @@ function w $main() {
 # 	pss(&p0); puts("");
 # 	qfn4(p0);
 # }
-# extern void qfn5(double, double, double, double, double, double, double, Sss, float, long);
-# void cfn5(double p0, double p1, double p2, double p3, double p4, double p5, double p6, Sss p7, float p8, long p9) {
+# extern void qfn5(double, double, double, double, double, double, double, Sss, float, long long);
+# void cfn5(double p0, double p1, double p2, double p3, double p4, double p5, double p6, Sss p7, float p8, long long p9) {
 # 	printf("qbe->c(%d)", 5);
 # 	pss(&p7); ps(p8); pl(p9); puts("");
 # 	qfn5(p0, p1, p2, p3, p4, p5, p6, p7, p8, p9);
@@ -236,8 +236,8 @@ function w $main() {
 # 	pbig(&p0); puts("");
 # 	qfn9(p0);
 # }
-# extern void qfn10(int, int, int, int, int, int, int, int, Sbig, float, long);
-# void cfn10(int p0, int p1, int p2, int p3, int p4, int p5, int p6, int p7, Sbig p8, float p9, long p10) {
+# extern void qfn10(int, int, int, int, int, int, int, int, Sbig, float, long long);
+# void cfn10(int p0, int p1, int p2, int p3, int p4, int p5, int p6, int p7, Sbig p8, float p9, long long p10) {
 # 	printf("qbe->c(%d)", 10);
 # 	pbig(&p8); ps(p9); pl(p10); puts("");
 # 	qfn10(p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10);

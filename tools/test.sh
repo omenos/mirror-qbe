@@ -31,17 +31,23 @@ find_cc_and_qemu() {
 		cc=$candidate_cc
 		echo "cc: $cc"
 
-		if [ "$target" = "$(uname -m)" ]; then
+		if [ "$target" = "$(uname -m)" ]
+		then
 			qemu=qemu_not_needed
 			echo "qemu: not needed, testing native architecture"
 		else
 			qemu="$3"
-			if $qemu -version >/dev/null 2>&1; then
+			if $qemu -version >/dev/null 2>&1
+			then
 				sysroot=$($candidate_cc -print-sysroot)
 				if [ -n "$sysroot" ]; then
 					qemu="$qemu -L $sysroot"
 				fi
 				echo "qemu: $qemu"
+			elif $qemu --version >/dev/null 2>&1
+			then
+				# wine
+				:
 			else
 				qemu=
 				echo "qemu: not found"
@@ -89,6 +95,19 @@ init() {
 			exit 77
 		fi
 		bin="$bin -t amd64_sysv"
+		;;
+	amd64_win)
+		for p in x86_64-w64-mingw32
+		do
+			find_cc_and_qemu x86_64-w64 "$p-gcc -static" "wine"
+		done
+		if test -z "$cc"
+		then
+			echo "Cannot find windows compiler or wine."
+			exit 1
+		fi
+		export WINEDEBUG=-all
+		bin="$bin -t amd64_win"
 		;;
 	"")
 		case `uname` in
@@ -185,7 +204,7 @@ once() {
 
 	if test -s $out
 	then
-		$qemu $exe a b c | diff -u - $out
+		$qemu $exe a b c | tr -d '\r' | diff -u - $out
 		ret=$?
 		reason="output"
 	else

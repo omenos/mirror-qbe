@@ -228,8 +228,8 @@ int amd64_sysv_rsave[] = {
 int amd64_sysv_rclob[] = {RBX, R12, R13, R14, R15, -1};
 
 MAKESURE(sysv_arrays_ok,
-	sizeof amd64_sysv_rsave == (NGPS+NFPS+1) * sizeof(int) &&
-	sizeof amd64_sysv_rclob == (NCLR+1) * sizeof(int)
+	sizeof amd64_sysv_rsave == (NGPS_SYSV+NFPS+1) * sizeof(int) &&
+	sizeof amd64_sysv_rclob == (NCLR_SYSV+1) * sizeof(int)
 );
 
 /* layout of call's second argument (RCall)

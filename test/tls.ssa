@@ -1,3 +1,4 @@
+# skip amd64_win (pthread and tls not implemented)
 thread data $i = align 4 {w 42}
 data $fmti = align 1 {b "i%d==%d\n", b 0}
 
