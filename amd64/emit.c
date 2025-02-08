@@ -167,9 +167,12 @@ slot(Ref r, E *e)
 	}
 	else if (e->fp == RSP)
 		return 4*s + e->nclob*8;
-	else if (e->fn->vararg)
-		return -176 + -4 * (e->fn->slot - s);
-	else
+	else if (e->fn->vararg) {
+		if (T.windows)
+			return -4 * (e->fn->slot - s);
+		else
+			return -176 + -4 * (e->fn->slot - s);
+	} else
 		return -4 * (e->fn->slot - s);
 }
 
@@ -580,14 +583,14 @@ emitins(Ins i, E *e)
 }
 
 static void
-framesz(E *e)
+sysv_framesz(E *e)
 {
 	uint64_t i, o, f;
 
 	/* specific to NAlign == 3 */
 	o = 0;
 	if (!e->fn->leaf) {
-		for (i=0, o=0; i<NCLR; i++)
+		for (i=0, o=0; i<NCLR_SYSV; i++)
 			o ^= e->fn->reg >> amd64_sysv_rclob[i];
 		o &= 1;
 	}
@@ -601,7 +604,7 @@ framesz(E *e)
 }
 
 void
-amd64_emitfn(Fn *fn, FILE *f)
+amd64_sysv_emitfn(Fn *fn, FILE *f)
 {
 	static char *ctoa[] = {
 	#define X(c, s) [c] = s,
@@ -623,7 +626,7 @@ amd64_emitfn(Fn *fn, FILE *f)
 		fputs("\tpushq %rbp\n\tmovq %rsp, %rbp\n", f);
 	} else
 		e->fp = RSP;
-	framesz(e);
+	sysv_framesz(e);
 	if (e->fsz)
 		fprintf(f, "\tsubq $%"PRIu64", %%rsp\n", e->fsz);
 	if (fn->vararg) {
@@ -633,7 +636,7 @@ amd64_emitfn(Fn *fn, FILE *f)
 		for (n=0; n<8; ++n, o+=16)
 			fprintf(f, "\tmovaps %%xmm%d, %d(%%rbp)\n", n, o);
 	}
-	for (r=amd64_sysv_rclob; r<&amd64_sysv_rclob[NCLR]; r++)
+	for (r=amd64_sysv_rclob; r<&amd64_sysv_rclob[NCLR_SYSV]; r++)
 		if (fn->reg & BIT(*r)) {
 			itmp.arg[0] = TMP(*r);
 			emitf("pushq %L0", &itmp, e);
@@ -662,7 +665,7 @@ amd64_emitfn(Fn *fn, FILE *f)
 					"\tmovq %%rbp, %%rsp\n"
 					"\tsubq $%"PRIu64", %%rsp\n",
 					e->fsz + e->nclob * 8);
-			for (r=&amd64_sysv_rclob[NCLR]; r>amd64_sysv_rclob;)
+			for (r=&amd64_sysv_rclob[NCLR_SYSV]; r>amd64_sysv_rclob;)
 				if (fn->reg & BIT(*--r)) {
 					itmp.arg[0] = TMP(*r);
 					emitf("popq %L0", &itmp, e);
@@ -702,4 +705,119 @@ amd64_emitfn(Fn *fn, FILE *f)
 	id0 += fn->nblk;
 	if (!T.apple)
 		elf_emitfnfin(fn->name, f);
+}
+
+static void
+winabi_framesz(E *e)
+{
+	uint64_t i, o, f;
+
+	/* specific to NAlign == 3 */
+	o = 0;
+	if (!e->fn->leaf) {
+		for (i=0, o=0; i<NCLR_WIN; i++)
+			o ^= e->fn->reg >> amd64_winabi_rclob[i];
+		o &= 1;
+	}
+	f = e->fn->slot;
+	f = (f + 3) & -4;
+	if (f > 0
+	&& e->fp == RSP
+	&& e->fn->salign == 4)
+		f += 2;
+	e->fsz = 4*f + 8*o;
+}
+
+void
+amd64_winabi_emitfn(Fn *fn, FILE *f)
+{
+	static char *ctoa[] = {
+	#define X(c, s) [c] = s,
+		CMP(X)
+	#undef X
+	};
+	static int id0;
+	Blk *b, *s;
+	Ins *i, itmp;
+	int *r, c, lbl;
+	E *e;
+
+	e = &(E){.f = f, .fn = fn};
+	emitfnlnk(fn->name, &fn->lnk, f);
+	fputs("\tendbr64\n", f);
+	if (fn->vararg) {
+		fprintf(f, "\tmovq %%rcx, 0x8(%%rsp)\n");
+		fprintf(f, "\tmovq %%rdx, 0x10(%%rsp)\n");
+		fprintf(f, "\tmovq %%r8, 0x18(%%rsp)\n");
+		fprintf(f, "\tmovq %%r9, 0x20(%%rsp)\n");
+	}
+	if (!fn->leaf || fn->vararg || fn->dynalloc) {
+		e->fp = RBP;
+		fputs("\tpushq %rbp\n\tmovq %rsp, %rbp\n", f);
+	} else
+		e->fp = RSP;
+	winabi_framesz(e);
+	if (e->fsz)
+		fprintf(f, "\tsubq $%"PRIu64", %%rsp\n", e->fsz);
+	for (r=amd64_winabi_rclob; r<&amd64_winabi_rclob[NCLR_WIN]; r++)
+		if (fn->reg & BIT(*r)) {
+			itmp.arg[0] = TMP(*r);
+			emitf("pushq %L0", &itmp, e);
+			e->nclob++;
+		}
+
+	for (lbl=0, b=fn->start; b; b=b->link) {
+		if (lbl || b->npred > 1)
+			fprintf(f, "%sbb%d:\n", T.asloc, id0+b->id);
+		for (i=b->ins; i!=&b->ins[b->nins]; i++)
+			emitins(*i, e);
+		lbl = 1;
+		switch (b->jmp.type) {
+		case Jhlt:
+			fprintf(f, "\tud2\n");
+			break;
+		case Jret0:
+			if (fn->dynalloc)
+				fprintf(f,
+					"\tmovq %%rbp, %%rsp\n"
+					"\tsubq $%"PRIu64", %%rsp\n",
+					e->fsz + e->nclob * 8);
+			for (r=&amd64_winabi_rclob[NCLR_WIN]; r>amd64_winabi_rclob;)
+				if (fn->reg & BIT(*--r)) {
+					itmp.arg[0] = TMP(*r);
+					emitf("popq %L0", &itmp, e);
+				}
+			if (e->fp == RBP)
+				fputs("\tleave\n", f);
+			else if (e->fsz)
+				fprintf(f,
+					"\taddq $%"PRIu64", %%rsp\n",
+					e->fsz);
+			fputs("\tret\n", f);
+			break;
+		case Jjmp:
+		Jmp:
+			if (b->s1 != b->link)
+				fprintf(f, "\tjmp %sbb%d\n",
+					T.asloc, id0+b->s1->id);
+			else
+				lbl = 0;
+			break;
+		default:
+			c = b->jmp.type - Jjf;
+			if (0 <= c && c <= NCmp) {
+				if (b->link == b->s2) {
+					s = b->s1;
+					b->s1 = b->s2;
+					b->s2 = s;
+				} else
+					c = cmpneg(c);
+				fprintf(f, "\tj%s %sbb%d\n", ctoa[c],
+					T.asloc, id0+b->s2->id);
+				goto Jmp;
+			}
+			die("unhandled jump %d", b->jmp.type);
+		}
+	}
+	id0 += fn->nblk;
 }

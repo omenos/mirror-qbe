@@ -44,6 +44,7 @@ enum {
 struct Target {
 	char name[16];
 	char apple;
+	char windows;
 	int gpr0;   /* first general purpose reg */
 	int ngpr;
 	int fpr0;   /* first floating point reg */
@@ -618,3 +619,4 @@ int stashbits(void *, int);
 void elf_emitfnfin(char *, FILE *);
 void elf_emitfin(FILE *);
 void macho_emitfin(FILE *);
+void pe_emitfin(FILE *);

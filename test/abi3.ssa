@@ -28,7 +28,7 @@ function $test() {
 
 # >>> driver
 # #include <stdio.h>
-# struct four { long l; char c; int i; };
+# struct four { long long l; char c; int i; };
 # extern void test(void);
 # int F(int a0, int a1, int a2, int a3, struct four s, int a6) {
 # 	printf("%d %d %d %d %d %d %d\n",

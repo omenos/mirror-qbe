@@ -107,7 +107,7 @@ function $test() {
 # typedef struct { int i; } st2;
 # typedef struct { float f; int i; } st3;
 # typedef struct { int i; double d; } st4;
-# typedef struct { float f; long l; } st5;
+# typedef struct { float f; long long l; } st5;
 # typedef struct { char t[16]; } st6;
 # typedef struct { float f; double d; } st7;
 # typedef struct { int i[4]; } st8;
