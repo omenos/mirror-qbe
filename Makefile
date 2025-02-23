@@ -71,6 +71,9 @@ clean-gen: clean
 check: qbe
 	tools/test.sh all
 
+check-x86_64: qbe
+	TARGET=x86_64 tools/test.sh all
+
 check-arm64: qbe
 	TARGET=arm64 tools/test.sh all
 

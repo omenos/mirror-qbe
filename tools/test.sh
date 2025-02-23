@@ -62,6 +62,30 @@ init() {
 		fi
 		bin="$bin -t rv64"
 		;;
+	x86_64)
+		for p in x86_64-linux-musl x86_64-linux-gnu
+		do
+			cc="$p-gcc -no-pie -static"
+			qemu="qemu-x86_64"
+			if
+				$cc -v >/dev/null 2>&1 &&
+				$qemu -version >/dev/null 2>&1
+			then
+				if sysroot=$($cc -print-sysroot) && test -n "$sysroot"
+				then
+					qemu="$qemu -L $sysroot"
+				fi
+				break
+			fi
+			cc=
+		done
+		if test -z "$cc"
+		then
+			echo "Cannot find x86_64 compiler or qemu."
+			exit 1
+		fi
+		bin="$bin -t amd64_sysv"
+		;;
 	"")
 		case `uname` in
 		*Darwin*)
