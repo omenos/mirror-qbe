@@ -16,26 +16,50 @@ asmref=$tmp.ref.s
 exe=$tmp.exe
 out=$tmp.out
 
+qemu_not_needed() {
+	"$@"
+}
+
+cc=
+find_cc_and_qemu() {
+	if [ -n "$cc" ]; then
+		return
+	fi
+	target="$1"
+	candidate_cc="$2"
+	if $candidate_cc -v >/dev/null 2>&1; then
+		cc=$candidate_cc
+		echo "cc: $cc"
+
+		if [ "$target" = "$(uname -m)" ]; then
+			qemu=qemu_not_needed
+			echo "qemu: not needed, testing native architecture"
+		else
+			qemu="$3"
+			if $qemu -version >/dev/null 2>&1; then
+				sysroot=$($candidate_cc -print-sysroot)
+				if [ -n "$sysroot" ]; then
+					qemu="$qemu -L $sysroot"
+				fi
+				echo "qemu: $qemu"
+			else
+				qemu=
+				echo "qemu: not found"
+			fi
+		fi
+		echo
+
+	fi
+}
+
 init() {
 	case "$TARGET" in
 	arm64)
 		for p in aarch64-linux-musl aarch64-linux-gnu
 		do
-			cc="$p-gcc -no-pie -static"
-			qemu="qemu-aarch64"
-			if
-				$cc -v >/dev/null 2>&1 &&
-				$qemu -version >/dev/null 2>&1
-			then
-				if sysroot=$($cc -print-sysroot) && test -n "$sysroot"
-				then
-					qemu="$qemu -L $sysroot"
-				fi
-				break
-			fi
-			cc=
+			find_cc_and_qemu aarch64 "$p-gcc -no-pie -static" "qemu-aarch64"
 		done
-		if test -z "$cc"
+		if test -z "$cc" -o -z "$qemu"
 		then
 			echo "Cannot find arm64 compiler or qemu."
 			exit 77
@@ -45,21 +69,9 @@ init() {
 	rv64)
 		for p in riscv64-linux-musl riscv64-linux-gnu
 		do
-			cc="$p-gcc -no-pie -static"
-			qemu="qemu-riscv64"
-			if
-				$cc -v >/dev/null 2>&1 &&
-				$qemu -version >/dev/null 2>&1
-			then
-				if sysroot=$($cc -print-sysroot) && test -n "$sysroot"
-				then
-					qemu="$qemu -L $sysroot"
-				fi
-				break
-			fi
-			cc=
+			find_cc_and_qemu riscv64 "$p-gcc -no-pie -static" "qemu-riscv64"
 		done
-		if test -z "$cc"
+		if test -z "$cc" -o -z "$qemu"
 		then
 			echo "Cannot find riscv64 compiler or qemu."
 			exit 77
@@ -69,21 +81,9 @@ init() {
 	x86_64)
 		for p in x86_64-linux-musl x86_64-linux-gnu
 		do
-			cc="$p-gcc -no-pie -static"
-			qemu="qemu-x86_64"
-			if
-				$cc -v >/dev/null 2>&1 &&
-				$qemu -version >/dev/null 2>&1
-			then
-				if sysroot=$($cc -print-sysroot) && test -n "$sysroot"
-				then
-					qemu="$qemu -L $sysroot"
-				fi
-				break
-			fi
-			cc=
+			find_cc_and_qemu x86_64 "$p-gcc -no-pie -static" "qemu-x86_64"
 		done
-		if test -z "$cc"
+		if test -z "$cc" -o -z "$qemu"
 		then
 			echo "Cannot find x86_64 compiler or qemu."
 			exit 77
