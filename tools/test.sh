@@ -1,8 +1,12 @@
 #!/bin/sh
 
 dir=`dirname "$0"`
-bin=$dir/../qbe
-binref=$dir/../qbe.ref
+if [ -z "${bin:-}" ]; then
+	bin=$dir/../qbe
+fi
+if [ -z "${binref:-}" ]; then
+	binref=${bin}.ref
+fi
 
 tmp=/tmp/qbe.zzzz
 
@@ -34,7 +38,7 @@ init() {
 		if test -z "$cc"
 		then
 			echo "Cannot find arm64 compiler or qemu."
-			exit 1
+			exit 77
 		fi
 		bin="$bin -t arm64"
 		;;
@@ -58,7 +62,7 @@ init() {
 		if test -z "$cc"
 		then
 			echo "Cannot find riscv64 compiler or qemu."
-			exit 1
+			exit 77
 		fi
 		bin="$bin -t rv64"
 		;;
@@ -82,7 +86,7 @@ init() {
 		if test -z "$cc"
 		then
 			echo "Cannot find x86_64 compiler or qemu."
-			exit 1
+			exit 77
 		fi
 		bin="$bin -t amd64_sysv"
 		;;
@@ -106,7 +110,7 @@ init() {
 		;;
 	*)
 		echo "Unknown target '$TARGET'."
-		exit 1
+		exit 77
 		;;
 	esac
 }
