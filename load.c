@@ -380,6 +380,7 @@ def(Slice sl, bits msk, Blk *b, Ins *i, Loc *il)
 			goto Load;
 		p->arg[np] = r1;
 		p->blk[np] = bp;
+		/* XXX - multiplicity in predecessors!!! */
 	}
 	if (msk != msks)
 		mask(cls, &r, msk, il);

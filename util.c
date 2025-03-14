@@ -168,7 +168,7 @@ addbins(Blk *b, Ins **pvins, uint *pnins)
 {
 	Ins *i;
 
-	for (i = b->ins; i < &b->ins[b->nins]; i++)
+	for (i=b->ins; i<&b->ins[b->nins]; i++)
 		addins(pvins, pnins, i);
 }
 
@@ -247,23 +247,50 @@ iscmp(int op, int *pk, int *pc)
 	return 1;
 }
 
-static int INVCMPWL[] = {
-	/*Oceqw*/Ocnew, /*Ocnew*/Oceqw,
-	/*Ocsgew*/Ocsltw, /*Ocsgtw*/Ocslew, /*Ocslew*/Ocsgtw, /*Ocsltw*/Ocsgew,
-	/*Ocugew*/Ocultw, /*Ocugtw*/Oculew, /*Oculew*/Ocugtw, /*Ocultw*/Ocugew,
-	/*Oceql*/Ocnel, /*Ocnel*/Oceql,
-	/*Ocsgel*/Ocsltl, /*Ocsgtl*/Ocslel, /*Ocslel*/Ocsgtl, /*Ocsltl*/Ocsgel,
-	/*Ocugel*/Ocultl, /*Ocugtl*/Oculel, /*Oculel*/Ocugtl, /*Ocultl*/Ocugel,
-};
-
-int
-invcmpwl(int cmp)
+void
+igroup(Blk *b, Ins *i, Ins **i0, Ins **i1)
 {
-	assert(Oceqw <= cmp && cmp <= Ocultl);
-	return INVCMPWL[cmp - Oceqw];
+	Ins *ib, *ie;
+
+	ib = b->ins;
+	ie = ib + b->nins;
+	switch (i->op) {
+	case Oblit0:
+		*i0 = i;
+		*i1 = i + 2;
+		return;
+	case Oblit1:
+		*i0 = i - 1;
+		*i1 = i + 1;
+		return;
+	case_Opar:
+		for (; i>ib && ispar((i-1)->op); i--)
+			;
+		*i0 = i;
+		for (; i<ie && ispar(i->op); i++)
+			;
+		*i1 = i;
+		return;
+	case Ocall:
+	case_Oarg:
+		for (; i>ib && isarg((i-1)->op); i--)
+			;
+		*i0 = i;
+		for (; i<ie && i->op != Ocall; i++)
+			;
+		assert(i < ie);
+		*i1 = i + 1;
+		return;
+	default:
+		if (ispar(i->op))
+			goto case_Opar;
+		if (isarg(i->op))
+			goto case_Oarg;
+		*i0 = i;
+		*i1 = i + 1;
+		return;
+	}
 }
-
-
 
 int
 argcls(Ins *i, int n)
@@ -291,12 +318,8 @@ emiti(Ins i)
 void
 idup(Blk *b, Ins *s, ulong n)
 {
-	if (b->ins)
-		vgrow(&b->ins, n);
-	else
-		b->ins = vnew(n, sizeof(Ins), PFn);
-	if (n)
-		memcpy(b->ins, s, n * sizeof(Ins));
+	vgrow(&b->ins, n);
+	icpy(b->ins, s, n);
 	b->nins = n;
 }
 
@@ -345,6 +368,16 @@ cmpop(int c)
 }
 
 int
+cmpwlneg(int op)
+{
+	if (INRANGE(op, Ocmpw, Ocmpw1))
+		return cmpneg(op - Ocmpw) + Ocmpw;
+	if (INRANGE(op, Ocmpl, Ocmpl1))
+		return cmpneg(op - Ocmpl) + Ocmpl;
+	die("not a wl comparison");
+}
+
+int
 clsmerge(short *pk, short k)
 {
 	short k1;
@@ -379,16 +412,21 @@ phiargn(Phi *p, Blk *b)
 {
 	uint n;
 
-	for (n = 0; n < p->narg; n++)
-		if (p->blk[n] == b)
-			return n;
-	die("unreachable");
+	if (p)
+		for (n=0; n<p->narg; n++)
+			if (p->blk[n] == b)
+				return n;
+	return -1;
 }
 
 Ref
 phiarg(Phi *p, Blk *b)
 {
-	return p->arg[phiargn(p, b)];
+	uint n;
+
+	n = phiargn(p, b);
+	assert(n != -1u && "block not found");
+	return p->arg[n];
 }
 
 Ref
@@ -487,12 +525,6 @@ isconbits(Fn *fn, Ref r, int64_t *v)
 		}
 	}
 	return 0;
-}
-
-int
-istmpconbits(Fn *fn, Ins *i, int64_t *v)
-{
-	return rtype(i->arg[0]) == RTmp && isconbits(fn, i->arg[1], v);
 }
 
 void

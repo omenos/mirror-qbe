@@ -7,7 +7,7 @@
 #endif
 
 #ifndef F
-#define F(CanFold, HasId, IdVal, Commutes, Associates, Idemp, IsCmpEq, IsCmpLgte, CmpEqVal, IsPinned)
+#define F(a,b,c,d,e,f,g,h,i,j)
 #endif
 
 #define T(a,b,c,d,e,f,g,h) {                          \
@@ -19,7 +19,17 @@
 /* PUBLIC OPERATIONS */
 /*********************/
 
-/* Arithmetic and Bits */
+/*                                can fold                        */
+/*                                | has identity                  */
+/*                                | | identity value for arg[1]   */
+/*                                | | | commutative               */
+/*                                | | | | associative             */
+/*                                | | | | | idempotent            */
+/*                                | | | | | | c{eq,ne}[wl]        */
+/*                                | | | | | | | c[us][gl][et][wl] */
+/*                                | | | | | | | | value if = args */
+/*                                | | | | | | | | | pinned        */
+/* Arithmetic and Bits            v v v v v v v v v v             */
 O(add,     T(w,l,s,d, w,l,s,d), F(1,1,0,1,1,0,0,0,0,0)) X(2,1,0) V(1)
 O(sub,     T(w,l,s,d, w,l,s,d), F(1,1,0,0,0,0,0,0,0,0)) X(2,1,0) V(0)
 O(neg,     T(w,l,s,d, x,x,x,x), F(1,0,0,0,0,0,0,0,0,0)) X(1,1,0) V(0)

@@ -77,9 +77,6 @@ func(Fn *fn)
 	gvn(fn);
 	fillcfg(fn);
 	filluse(fn);
-	ifelim(fn);
-	fillcfg(fn);
-	filluse(fn);
 	filldom(fn);
 	gcm(fn);
 	filluse(fn);

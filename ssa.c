@@ -44,7 +44,6 @@ filluse(Fn *fn)
 	uint a;
 	Tmp *tmp;
 
-	/* todo, is this the correct file? */
 	tmp = fn->tmp;
 	for (t=Tmp0; t<fn->ntmp; t++) {
 		tmp[t].def = 0;
@@ -145,7 +144,7 @@ phiins(Fn *fn)
 				continue;
 		}
 		bszero(u);
-		k = -1;
+		k = Kx;
 		bp = be;
 		for (b=fn->start; b; b=b->link) {
 			b->visit = 0;

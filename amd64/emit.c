@@ -612,6 +612,7 @@ amd64_emitfn(Fn *fn, FILE *f)
 	Blk *b, *s;
 	Ins *i, itmp;
 	int *r, c, o, n, lbl;
+	uint p;
 	E *e;
 
 	e = &(E){.f = f, .fn = fn};
@@ -640,8 +641,14 @@ amd64_emitfn(Fn *fn, FILE *f)
 		}
 
 	for (lbl=0, b=fn->start; b; b=b->link) {
-		if (lbl || b->npred > 1)
+		if (lbl || b->npred > 1) {
+			for (p=0; p<b->npred; p++)
+				if (b->pred[p]->id >= b->id)
+					break;
+			if (p != b->npred)
+				fprintf(f, ".p2align 4\n");
 			fprintf(f, "%sbb%d:\n", T.asloc, id0+b->id);
+		}
 		for (i=b->ins; i!=&b->ins[b->nins]; i++)
 			emitins(*i, e);
 		lbl = 1;

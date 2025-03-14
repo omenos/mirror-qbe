@@ -2,36 +2,35 @@
 
 #define NOBID (-1u)
 
-/* ins can trap at runtime */
 static int
-istrapping(Fn *fn, Ins *i)
+isdivwl(Ins *i)
 {
-	int64_t v;
-
-	if (KBASE(i->cls) == 0)
-	if (INRANGE(i->op, Odiv, Ourem))
-	if (!isconbits(fn, i->arg[1], &v) || v == 0)
-		return 1;
-	return 0;
+	switch (i->op) {
+	case Odiv:
+	case Orem:
+	case Oudiv:
+	case Ourem:
+		return KBASE(i->cls) == 0;
+	default:
+		return 0;
+	}
 }
 
-/* fixed ins that can be eliminated if unused */
-static int
-canelim(Fn *fn, Ins *i)
-{
-	return isload(i->op) || isalloc(i->op) || istrapping(fn, i);
-}
-
-/* ins must stay in def blk */
 int
-isfixed(Fn *fn, Ins *i)
+pinned(Ins *i)
 {
-	return optab[i->op].ispinned || istrapping(fn, i);
+	return optab[i->op].pinned || isdivwl(i);
+}
+
+/* pinned ins that can be eliminated if unused */
+static int
+canelim(Ins *i)
+{
+	return isload(i->op) || isalloc(i->op) || isdivwl(i);
 }
 
 static uint earlyins(Fn *, Blk *, Ins *);
 
-/* return earlybid of ref def ins */
 static uint
 schedearly(Fn *fn, Ref r)
 {
@@ -39,43 +38,39 @@ schedearly(Fn *fn, Ref r)
 	Blk *b;
 
 	if (rtype(r) != RTmp)
-		return 0 /* root/start */;
+		return 0;
 
 	t = &fn->tmp[r.val];
 	if (t->gcmbid != NOBID)
-		return t->gcmbid; /* already visited/visiting */
+		return t->gcmbid;
 
 	b = fn->rpo[t->bid];
 	if (t->def) {
-		/* def is an ins */
 		assert(b->ins <= t->def && t->def < &b->ins[b->nins]);
-		t->gcmbid = 0; /* mark visiting root/start blk */
-		t->gcmbid = earlyins(fn, b, t->def); /* schedule ins input defs */
+		t->gcmbid = 0;  /* mark as visiting */
+		t->gcmbid = earlyins(fn, b, t->def);
 	} else {
-		/* def is a phi - it stays in its def blk */
+		/* phis do not move */
 		t->gcmbid = t->bid;
 	}
 
 	return t->gcmbid;
 }
 
-/* return deepest domdpth bid of arg defs */
 static uint
-earlyins(Fn *fn, Blk *b, Ins* i)
+earlyins(Fn *fn, Blk *b, Ins *i)
 {
-	uint earlybid, arg1earlybid;
+	uint b0, b1;
 
-	earlybid = schedearly(fn, i->arg[0]);
-	assert(earlybid != NOBID);
-	arg1earlybid = schedearly(fn, i->arg[1]);
-	assert(arg1earlybid != NOBID);
-	if (fn->rpo[earlybid]->domdpth < fn->rpo[arg1earlybid]->domdpth) {
-		assert(dom(fn->rpo[earlybid], fn->rpo[arg1earlybid]));
-		earlybid = arg1earlybid;
+	b0 = schedearly(fn, i->arg[0]);
+	assert(b0 != NOBID);
+	b1 = schedearly(fn, i->arg[1]);
+	assert(b1 != NOBID);
+	if (fn->rpo[b0]->depth < fn->rpo[b1]->depth) {
+		assert(dom(fn->rpo[b0], fn->rpo[b1]));
+		b0 = b1;
 	}
-
-	/* fixed ins remain in their defining blk */
-	return isfixed(fn, i) ? b->id : earlybid;
+	return pinned(i) ? b->id : b0;
 }
 
 static void
@@ -87,12 +82,14 @@ earlyblk(Fn *fn, uint bid)
 	uint n;
 
 	b = fn->rpo[bid];
-	for (p = b->phi; p; p = p->link)
-		for (n = 0; n < p->narg; n++)
+	for (p=b->phi; p; p=p->link)
+		for (n=0; n<p->narg; n++)
 			schedearly(fn, p->arg[n]);
-	for (i = b->ins; i < &b->ins[b->nins]; i++)
-		if (isfixed(fn, i))
-			earlyins(fn, b, i);
+	for (i=b->ins; i<&b->ins[b->nins]; i++)
+		if (pinned(i)) {
+			schedearly(fn, i->arg[0]);
+			schedearly(fn, i->arg[1]);
+		}
 	schedearly(fn, b->jmp.arg);
 }
 
@@ -154,16 +151,17 @@ schedlate(Fn *fn, Ref r)
 
 	t = &fn->tmp[r.val];
 	if (t->visit)
-		return t->gcmbid; /* already visited/visiting */
+		return t->gcmbid;
 
-	t->visit = 1; /* mark visiting/visited */
+	t->visit = 1;
 	earlybid = t->gcmbid;
 	if (earlybid == NOBID)
 		return NOBID; /* not used */
-	t->gcmbid = t->bid; /* t->gcmbid is now latebid */
 
+	/* reuse gcmbid for late bid */
+	t->gcmbid = t->bid;
 	latebid = NOBID;
-	for (u = t->use; u < &t->use[t->nuse]; u++) {
+	for (u=t->use; u<&t->use[t->nuse]; u++) {
 		assert(u->bid < fn->nblk);
 		b = fn->rpo[u->bid];
 		switch (u->type) {
@@ -182,39 +180,37 @@ schedlate(Fn *fn, Ref r)
 		}
 		latebid = lcabid(fn, latebid, uselatebid);
 	}
+	/* latebid may be NOBID if the temp is used
+	 * in fixed instructions that may be eliminated
+	 * and are themselves unused transitively */
 
-	/* phis stay in their def blk */
-	if (t->def) {
-		/* allow elimination of unused load/alloc/trapping ins */
-		if (latebid == NOBID && canelim(fn, t->def))
-			t->gcmbid = NOBID;
-		/* ... otherwise fixed ins stay in defining blk */
-		else if(!isfixed(fn, t->def))
-			t->gcmbid = bestbid(fn, earlybid, latebid);
-	}
+	if (t->def && !pinned(t->def))
+		t->gcmbid = bestbid(fn, earlybid, latebid);
+	/* else, keep the early one */
 
+	/* now, gcmbid is the best bid */
 	return t->gcmbid;
 }
 
-/* return lca bid of uses, or NOBID if no active uses */
+/* returns lca bid of uses or NOBID if
+ * the definition can be eliminated */
 static uint
 lateins(Fn *fn, Blk *b, Ins *i, Ref r)
 {
 	uint latebid;
 
-	assert(i->op == Onop || req(i->arg[0], r) || req(i->arg[1], r));
-	if (i->op == Onop)
-		return NOBID; /* already eliminated */
-
 	assert(b->ins <= i && i < &b->ins[b->nins]);
+	assert(req(i->arg[0], r) || req(i->arg[1], r));
 
 	latebid = schedlate(fn, i->to);
-	/* allow elimination of unused load/alloc/trapping ins */
-	if (latebid == NOBID)
-	if (canelim(fn, i))
-		return NOBID;
-	/* ... otherwise fixed ins stay in defining blk */
-	return isfixed(fn, i) ? b->id : latebid;
+	if (pinned(i)) {
+		if (latebid == NOBID)
+		if (canelim(i))
+			return NOBID;
+		return b->id;
+	}
+
+	return latebid;
 }
 
 static uint
@@ -254,17 +250,16 @@ lateblk(Fn *fn, uint bid)
 	Ins *i;
 
 	b = fn->rpo[bid];
-	for (pp = &b->phi; *(pp);)
+	for (pp=&b->phi; *(pp);)
 		if (schedlate(fn, (*pp)->to) == NOBID) {
-			/* unused */
 			(*pp)->narg = 0; /* mark unused */
 			*pp = (*pp)->link; /* remove phi */
 		} else
 			pp = &(*pp)->link;
 
-	for (i = b->ins; i < &b->ins[b->nins]; i++)
-		if (isfixed(fn, i))
-			lateins(fn, b, i, i->arg[0]);
+	for (i=b->ins; i<&b->ins[b->nins]; i++)
+		if (pinned(i))
+			schedlate(fn, i->to);
 }
 
 static void
@@ -274,7 +269,7 @@ addgcmins(Fn *fn, Ins *vins, uint nins)
 	Tmp *t;
 	Blk *b;
 
-	for (i = vins; i < &vins[nins]; i++) {
+	for (i=vins; i<&vins[nins]; i++) {
 		assert(rtype(i->to) == RTmp);
 		t = &fn->tmp[i->to.val];
 		b = fn->rpo[t->gcmbid];
@@ -282,9 +277,10 @@ addgcmins(Fn *fn, Ins *vins, uint nins)
 	}
 }
 
-/* remove unused instructions */
-/* move instructions to (end of) target block */
-/* use-before-def is fixed up afterwards */
+/* move live instructions to the
+ * end of their target block; use-
+ * before-def errors are fixed by
+ * schedblk */
 static void
 gcmmove(Fn *fn)
 {
@@ -295,13 +291,13 @@ gcmmove(Fn *fn)
 	nins = 0;
 	vins = vnew(nins, sizeof vins[0], PFn);
 
-	for (t=&fn->tmp[Tmp0]; t < &fn->tmp[fn->ntmp]; t++) {
+	for (t=fn->tmp; t<&fn->tmp[fn->ntmp]; t++) {
 		if (t->def == 0)
 			continue;
 		if (t->bid == t->gcmbid)
 			continue;
 		i = t->def;
-		if (isfixed(fn, i) && !canelim(fn, i))
+		if (pinned(i) && !canelim(i))
 			continue;
 		assert(rtype(i->to) == RTmp);
 		assert(t == &fn->tmp[i->to.val]);
@@ -309,176 +305,153 @@ gcmmove(Fn *fn)
 			addins(&vins, &nins, i);
 		*i = (Ins){.op = Onop};
 	}
-
 	addgcmins(fn, vins, nins);
 }
 
-static void
-schedins(Fn *fn, Blk *b, Ins *i0, Ins **pvins, uint *pnins)
+/* dfs ordering */
+static Ins *
+schedins(Fn *fn, Blk *b, Ins *i, Ins **pvins, uint *pnins)
 {
-	Ins *i, *i1;
+	Ins *i0, *i1;
 	Tmp *t;
-	uint na;
+	uint n;
 
-	if (i0->op == Onop)
-		return;
-	/* arg...call have to stay together */
-	/* TODO - sel0...sel1 too */
-	for (i1 = i0; isarg(i1->op); i1++) {}
-	for (i = i0; i <= i1; i++)
-		for (na = 0; na < 2; na++) {
-			if (rtype(i->arg[na]) != RTmp)
+	igroup(b, i, &i0, &i1);
+	for (i=i0; i<i1; i++)
+		for (n=0; n<2; n++) {
+			if (rtype(i->arg[n]) != RTmp)
 				continue;
-			t = &fn->tmp[i->arg[na].val];
-			/* def in different blk, or phi in this blk */
-			if (t->bid != b->id || t->def == 0)
+			t = &fn->tmp[i->arg[n].val];
+			if (t->bid != b->id || !t->def)
 				continue;
-			/* already scheduled */
-			if (t->def->op == Onop) {
-				continue;
-			}
 			schedins(fn, b, t->def, pvins, pnins);
 		}
-	for (i = i0; i <= i1; i++) {
+	for (i=i0; i<i1; i++) {
 		addins(pvins, pnins, i);
 		*i = (Ins){.op = Onop};
 	}
+	return i1;
 }
 
+/* order ins within a block */
 static void
-fixbub4d(Fn *fn, Blk *b, Ins **pvins)
-{
-	Ins *i;
-	uint nins;
-
-	nins = 0;
-	for (i = b->ins; i < &b->ins[b->nins]; i++)
-		schedins(fn, b, i, pvins, &nins);
-	idup(b, *pvins, nins);
-}
-
-static void
-fixub4d(Fn *fn)
+schedblk(Fn *fn)
 {
 	Blk *b;
-	Ins *vins; // TODO insb
+	Ins *i, *vins;
+	uint nins;
 
-	vins = vnew(0, sizeof vins[0], PFn);
-	for (b = fn->start; b; b = b->link)
-		fixbub4d(fn, b, &vins);
+	vins = vnew(0, sizeof vins[0], PHeap);
+	for (b=fn->start; b; b=b->link) {
+		nins = 0;
+		for (i=b->ins; i<&b->ins[b->nins];)
+			i = schedins(fn, b, i, &vins, &nins);
+		idup(b, vins, nins);
+	}
+	vfree(vins);
 }
 
 static int
-iskladdcon(Fn *fn, Ins *i, int64_t *v)
+cheap(Ins *i)
 {
-	if (i->op == Oadd)
-	if (i->cls == Kl)
-	if (rtype(i->arg[0]) == RTmp)
-	if (isconbits(fn, i->arg[1], v))
-		return 1;
-	return 0;
-}
-
-static void
-ireassoc(Fn *fn, Blk *b, Ins *i, Ins **pvins, uint *pnins) 
-{
-	Blk *b2;
-	Tmp *t, *t2;
-	Use *u;
-	Ref r2;
-	int64_t v;
 	int x;
 
-	assert(b->ins <= i && i < &b->ins[b->nins]);
-	if (!iscmp(i->op, &x, &x))
-	if (!iskladdcon(fn, i, &v))
-		return;
-
-	assert(rtype(i->to) == RTmp);
-	t = &fn->tmp[i->to.val];
-	for (u = t->use; u < &t->use[t->nuse]; u++) {
-		if (u->type == UPhi)
-			continue;
-		b2 = fn->rpo[u->bid];
-		addins(pvins, pnins, i);
-		/* careful, can move fn->tmp */
-		r2 = newtmp("rea", t->cls, fn);
-		t = &fn->tmp[i->to.val];
-		t2 = &fn->tmp[r2.val];
-		t2->gcmbid = u->bid;
-		(*pvins)[(*pnins)-1].to = r2;
-		if (u->type == UIns) {
-			assert(req(u->u.ins->arg[0], i->to)
-			       || req(u->u.ins->arg[1], i->to));
-			if (req(u->u.ins->arg[0], i->to))
-				u->u.ins->arg[0] = r2;
-			if (req(u->u.ins->arg[1], i->to))
-				u->u.ins->arg[1] = r2;
-		} else {
-			assert(u->type == UJmp);
-			assert(req(b2->jmp.arg, i->to));
-			b2->jmp.arg = r2;
-		}
+	if (KBASE(i->cls) != 0)
+		return 0;
+	switch (i->op) {
+	case Oneg:
+	case Oadd:
+	case Osub:
+	case Omul:
+	case Oand:
+	case Oor:
+	case Oxor:
+	case Osar:
+	case Oshr:
+	case Oshl:
+		return 1;
+	default:
+		return iscmp(i->op, &x, &x);
 	}
-}
-
-/* Redistribute trivial ops to point of use. */
-/* Reduces register pressure. */
-/* needs rpo, use; breaks use */
-void
-reassoc(Fn *fn)
-{
-	Blk *b;
-	Ins *vins, *i;
-	uint nins;
-
-	nins = 0;
-	vins = vnew(nins, sizeof vins[0], PFn);
-
-	/* identify trivial ins */
-	for (b = fn->start; b; b = b->link) {
-		for (i = b->ins; i < &b->ins[b->nins]; i++)
-			ireassoc(fn, b, i, &vins, &nins);
-	}
-
-	addgcmins(fn, vins, nins);
 }
 
 static void
-cleartmps(Fn *fn)
+sinkref(Fn *fn, Blk *b, Ref *pr)
 {
+	Ins i;
 	Tmp *t;
+	Ref r;
 
-	for (t=&fn->tmp[Tmp0]; t < &fn->tmp[fn->ntmp]; t++) {
-		t->visit = 0;
-		t->gcmbid = NOBID;
-	}
+	if (rtype(*pr) != RTmp)
+		return;
+	t = &fn->tmp[pr->val];
+	if (!t->def
+	|| t->bid == b->id
+	|| pinned(t->def)
+	|| !cheap(t->def))
+		return;
+
+	/* sink t->def to b */
+	i = *t->def;
+	r = newtmp("snk", t->cls, fn);
+	t = 0;  /* invalidated */
+	*pr = r;
+	i.to = r;
+	fn->tmp[r.val].gcmbid = b->id;
+	emiti(i);
+	sinkref(fn, b, &i.arg[0]);
+	sinkref(fn, b, &i.arg[1]);
 }
 
-/* https://courses.cs.washington.edu/courses/cse501/06wi/reading/click-pldi95.pdf */
-/* require use dom */
-/* maintains rpo pred dom */
-/* breaks use */
+/* redistribute trivial ops to point of
+ * use to reduce register pressure
+ * requires rpo, use; breaks use
+ */
+static void
+sink(Fn *fn)
+{
+	Blk *b;
+	Ins *i;
+
+	for (b=fn->start; b; b=b->link) {
+		for (i=b->ins; i<&b->ins[b->nins]; i++)
+			if (isload(i->op))
+				sinkref(fn, b, &i->arg[0]);
+			else if (isstore(i->op))
+				sinkref(fn, b, &i->arg[1]);
+		sinkref(fn, b, &b->jmp.arg);
+	}
+	addgcmins(fn, curi, &insb[NIns] - curi);
+}
+
+/* requires use dom
+ * maintains rpo pred dom
+ * breaks use
+ */
 void
 gcm(Fn *fn)
 {
+	Tmp *t;
 	uint bid;
 
-	filldomdpth(fn);
+	filldepth(fn);
 	fillloop(fn);
 
-	cleartmps(fn);
+	for (t=fn->tmp; t<&fn->tmp[fn->ntmp]; t++) {
+		t->visit = 0;
+		t->gcmbid = NOBID;
+	}
 	for (bid=0; bid<fn->nblk; bid++)
 		earlyblk(fn, bid);
 	for (bid=0; bid<fn->nblk; bid++)
 		lateblk(fn, bid);
 
 	gcmmove(fn);
-	cleartmps(fn); /* filluse() uses visit */
 	filluse(fn);
-	reassoc(fn);
+	curi = &insb[NIns];
+	sink(fn);
 	filluse(fn);
-	fixub4d(fn);
+	schedblk(fn);
 	
 	if (debug['G']) {
 		fprintf(stderr, "\n> After GCM:\n");

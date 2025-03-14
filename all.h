@@ -223,7 +223,7 @@ struct Op {
 	uint cmpeqwl:1;   /* Kl/Kw cmp eq/ne? */
 	uint cmplgtewl:1; /* Kl/Kw cmp lt/gt/le/ge? */
 	uint eqval:1;     /* 1 for eq; 0 for ne */
-	uint ispinned:1;  /* GCM pinned op? */
+	uint pinned:1;    /* GCM pinned op? */
 };
 
 struct Ins {
@@ -260,9 +260,9 @@ struct Blk {
 
 	Blk *idom;
 	Blk *dom, *dlink;
-	int domdpth;
 	Blk **fron;
 	uint nfron;
+	int depth;
 
 	Blk **pred;
 	uint npred;
@@ -489,13 +489,14 @@ char *str(uint32_t);
 int argcls(Ins *, int);
 int isreg(Ref);
 int iscmp(int, int *, int *);
-int invcmpwl(int);
+void igroup(Blk *, Ins *, Ins **, Ins **);
 void emit(int, int, Ref, Ref, Ref);
 void emiti(Ins);
 void idup(Blk *, Ins *, ulong);
 Ins *icpy(Ins *, Ins *, ulong);
 int cmpop(int);
 int cmpneg(int);
+int cmpwlneg(int);
 int clsmerge(short *, short);
 int phicls(int, Tmp *);
 uint phiargn(Phi *, Blk *);
@@ -507,7 +508,6 @@ Ref newcon(Con *, Fn *);
 Ref getcon(int64_t, Fn *);
 int addcon(Con *, Con *, int);
 int isconbits(Fn *fn, Ref r, int64_t *v);
-int istmpconbits(Fn *fn, Ins *i, int64_t *v);
 void salloc(Ref, Ref, Fn *);
 void dumpts(BSet *, Tmp *, FILE *);
 void runmatch(uchar *, Num *, Ref, Ref *);
@@ -549,19 +549,11 @@ int sdom(Blk *, Blk *);
 int dom(Blk *, Blk *);
 void fillfron(Fn *);
 void loopiter(Fn *, void (*)(Blk *, Blk *));
-void filldomdpth(Fn *);
+void filldepth(Fn *);
 Blk *lca(Blk *, Blk *);
 void fillloop(Fn *);
 void simpljmp(Fn *);
-void replacepreds(Blk *, Blk *, Blk *);
-void killblks(Fn *);
-void blkmerge(Fn *);
-int ifgraph(Blk *, Blk **, Blk **, Blk **);
-int ifjoin(Blk *, Blk **, Blk **, Blk **);
-int emptyblk(Blk *);
-void ifelim(Fn *);
-void clrbvisit(Fn *);
-int reaches(Fn *,Blk *, Blk *);
+int reaches(Fn *, Blk *, Blk *);
 int reachesnotvia(Fn *, Blk *, Blk *, Blk *);
 
 /* mem.c */
@@ -586,24 +578,22 @@ void ssa(Fn *);
 void ssacheck(Fn *);
 
 /* copy.c */
-int iswu1(Fn *, Ref);
-void narrowpars(Fn *);
+void narrowpars(Fn *fn);
 Ref copyref(Fn *, Blk *, Ins *);
+Ref phicopyref(Fn *, Blk *, Phi *);
 
 /* fold.c */
+int foldint(Con *, int, int, Con *, Con *);
 Ref foldref(Fn *, Ins *);
 
 /* gvn.c */
-extern Ref con01[2];
-int is0non0(Fn *, Blk *, Ref, int, int *);
+extern Ref con01[2];  /* 0 and 1 */
+int zeroval(Fn *, Blk *, Ref, int, int *);
 void gvn(Fn *);
 
 /* gcm.c */
-int isfixed(Fn *, Ins *);
+int pinned(Ins *);
 void gcm(Fn *);
-
-/* reassoc.c */
-void reassoc(Fn *);
 
 /* simpl.c */
 void simpl(Fn *);

@@ -22,7 +22,7 @@ Op optab[NOp] = {
 	.commutes = co, .assoc = as, \
 	.idemp = im, \
 	.cmpeqwl = ic, .cmplgtewl = lg, .eqval = cv, \
-	.ispinned = pn
+	.pinned = pn
 #define O(op, k, flags) [O##op]={.name = #op, .argcls = k, flags},
 	#include "ops.h"
 #undef F
@@ -940,7 +940,7 @@ parsefn(Lnk *lnk)
 	curf->mem = vnew(0, sizeof curf->mem[0], PFn);
 	curf->nmem = 0;
 	curf->nblk = nblk;
-	curf->rpo = 0;
+	curf->rpo = vnew(nblk, sizeof curf->rpo[0], PFn);
 	for (b=curf->start; b; b=b->link)
 		b->dlink = 0; /* was trashed by findblk() */
 	for (i=0; i<BMask+1; ++i)

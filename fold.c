@@ -13,7 +13,7 @@ iscon(Con *c, int w, uint64_t k)
 		return (uint32_t)c->bits.i == (uint32_t)k;
 }
 
-static int
+int
 foldint(Con *res, int op, int w, Con *cl, Con *cr)
 {
 	union {

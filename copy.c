@@ -1,9 +1,35 @@
 #include "all.h"
 
-static uint
-u64_wbits(uint64_t v)
+typedef struct Ext Ext;
+
+struct Ext {
+	char zext;
+	char nopw; /* is a no-op if arg width is <= nopw */
+	char usew; /* uses only the low usew bits of arg */
+};
+
+static int
+ext(Ins *i, Ext *e)
 {
-	uint n;
+	static Ext tbl[] = {
+		/*extsb*/ {0,  7,  8},
+		/*extub*/ {1,  8,  8},
+		/*extsh*/ {0, 15, 16},
+		/*extuh*/ {1, 16, 16},
+		/*extsw*/ {0, 31, 32},
+		/*extuw*/ {1, 32, 32},
+	};
+
+	if (!isext(i->op))
+		return 0;
+	*e = tbl[i->op - Oextsb];
+	return 1;
+}
+
+static int
+bitwidth(uint64_t v)
+{
+	int n;
 
 	n = 0;
 	if (v >> 32) { n += 32; v >>= 32; }
@@ -15,44 +41,29 @@ u64_wbits(uint64_t v)
 	return n+v;
 }
 
+/* no more than w bits are used */
 static int
-EXTSIGNED[] = { /*extsb*/1, /*extub*/0, /*extsh*/1, /*extuh*/0, /*extsw*/1, /*extuw*/0 };
-
-static uint
-EXTMAXW[] = { /*extsb*/7, /*extub*/8, /*extsh*/15, /*extuh*/16, /*extsw*/31, /*extuw*/32 };
-
-static uint
-EXTW[] = { /*extsb*/8, /*extub*/8, /*extsh*/16, /*extuh*/16, /*extsw*/32, /*extuw*/32 };
-
-static uint
-STW[] = { /*storeb*/8, /*storeh*/16, /*storew*/32, /*storel*/64, /*stores*/32, /*stored*/64 };
-
-/* is the ref used only as a narrow value? */
-static int
-usewidthle(Fn *fn, Ref r, uint wbits)
+usewidthle(Fn *fn, Ref r, int w)
 {
+	Ext e;
 	Tmp *t;
 	Use *u;
 	Phi *p;
-	int b;
 	Ins *i;
 	Ref rc;
 	int64_t v;
+	int b;
 
-	if (isconbits(fn, r, &v))
-	if (u64_wbits(v) <= wbits)
-		return 1;
-	if (rtype(r) != RTmp)
-		return 0;
+	assert(rtype(r) == RTmp);
 	t = &fn->tmp[r.val];
-	for (u = t->use; u < &t->use[t->nuse]; u++) {
+	for (u=t->use; u<&t->use[t->nuse]; u++) {
 		switch (u->type) {
 		case UPhi:
 			p = u->u.phi;
 			if (p->visit)
 				continue;
 			p->visit = 1;
-			b = usewidthle(fn, p->to, wbits);
+			b = usewidthle(fn, p->to, w);
 			p->visit = 0;
 			if (b)
 				continue;
@@ -61,14 +72,13 @@ usewidthle(Fn *fn, Ref r, uint wbits)
 			i = u->u.ins;
 			assert(i != 0);
 			if (i->op == Ocopy)
-				if (usewidthle(fn, i->to, wbits))
+				if (usewidthle(fn, i->to, w))
 					continue;
-			if (isext(i->op)) {
-				if (EXTW[i->op - Oextsb] <= wbits)
+			if (ext(i, &e)) {
+				if (e.usew <= w)
 					continue;
-				else
-					if (usewidthle(fn, i->to, wbits))
-						continue;;
+				if (usewidthle(fn, i->to, w))
+					continue;
 			}
 			if (i->op == Oand) {
 				if (req(r, i->arg[0]))
@@ -77,15 +87,11 @@ usewidthle(Fn *fn, Ref r, uint wbits)
 					assert(req(r, i->arg[1]));
 					rc = i->arg[0];
 				}
-				if (isconbits(fn, rc, &v))
-				if (u64_wbits(v) <= wbits)
+				if (isconbits(fn, rc, &v)
+				&& bitwidth(v) <= w)
 					continue;
 				break;
 			}
-			if (isstore(i->op))
-			if (req(r, i->arg[1]))
-			if (STW[i->op - Ostoreb] > wbits)
-				continue;
 			break;
 		default:
 			break;
@@ -95,27 +101,17 @@ usewidthle(Fn *fn, Ref r, uint wbits)
 	return 1;
 }
 
-static Phi*
-findphi(Fn *fn, uint bid, Ref to)
-{
-	Phi *p;
-	for (p = fn->rpo[bid]->phi; p; p = p->link)
-		if (req(p->to, to))
-			break;
-	assert(p);
-	return p;
-}
-
-static uint
-uint_min(uint v1, uint v2)
+static int
+min(int v1, int v2)
 {
 	return v1 < v2 ? v1 : v2;
 }
 
-/* is the ref def a narrow value? */
+/* is the ref narrower than w bits */
 static int
-defwidthle(Fn *fn, Ref r, uint wbits)
+defwidthle(Fn *fn, Ref r, int w)
 {
+	Ext e;
 	Tmp *t;
 	Phi *p;
 	Ins *i;
@@ -123,93 +119,99 @@ defwidthle(Fn *fn, Ref r, uint wbits)
 	int64_t v;
 	int x;
 
-	if (isconbits(fn, r, &v))
-	if (u64_wbits(v) <= wbits)
+	if (isconbits(fn, r, &v)
+	&& bitwidth(v) <= w)
 		return 1;
 	if (rtype(r) != RTmp)
 		return 0;
 	t = &fn->tmp[r.val];
 	if (t->cls != Kw)
 		return 0;
-	i = t->def;
-	if (i == 0) {
+
+	if (!t->def) {
 		/* phi def */
-		p = findphi(fn, t->bid, r);
+		for (p=fn->rpo[t->bid]->phi; p; p=p->link)
+			if (req(p->to, r))
+				break;
+		assert(p);
 		if (p->visit)
 			return 1;
 		p->visit = 1;
-		for (n = 0; n < p->narg; n++)
-			if (!defwidthle(fn, p->arg[n], wbits)) {
+		for (n=0; n<p->narg; n++)
+			if (!defwidthle(fn, p->arg[n], w)) {
 				p->visit = 0;
 				return 0;
 			}
 		p->visit = 0;
 		return 1;
 	}
-	/* ins def */
+
+	i = t->def;
 	if (i->op == Ocopy)
-                return defwidthle(fn, i->arg[0], wbits);
+                return defwidthle(fn, i->arg[0], w);
 	if (i->op == Oshr || i->op == Osar) {
 		if (isconbits(fn, i->arg[1], &v))
 		if (0 < v && v <= 32) {
-			if (i->op == Oshr && 32-v <= wbits)
+			if (i->op == Oshr && w+v >= 32)
 				return 1;
-			if (0 <= v && v < 32 && wbits < 32)
-				return defwidthle(fn, i->arg[0], uint_min((i->op == Osar ? 31 : 32), wbits+v));
+			if (w < 32) {
+				if (i->op == Osar)
+					w = min(31, w+v);
+				else
+					w = min(32, w+v);
+			}
 		}
-		return defwidthle(fn, i->arg[0], wbits);
+		return defwidthle(fn, i->arg[0], w);
 	}
 	if (iscmp(i->op, &x, &x))
-		return wbits >= 1;
-	if (i->op == Oand)
-		return defwidthle(fn, i->arg[0], wbits) || defwidthle(fn, i->arg[1], wbits);
-	if (i->op == Oor || i->op == Oxor)
-		return defwidthle(fn, i->arg[0], wbits) && defwidthle(fn, i->arg[1], wbits);
-	if (isext(i->op)) {
-		if (EXTSIGNED[i->op - Oextsb])
-			return defwidthle(fn, i->arg[0], uint_min(wbits, EXTMAXW[i->op - Oextsb]));
-		if (EXTW[i->op - Oextsb] <= wbits)
+		return w >= 1;
+	if (i->op == Oand) {
+		if (defwidthle(fn, i->arg[0], w)
+		|| defwidthle(fn, i->arg[1], w))
 			return 1;
-		return defwidthle(fn, i->arg[0], wbits);
+		return 0;
 	}
+	if (i->op == Oor || i->op == Oxor) {
+		if (defwidthle(fn, i->arg[0], w)
+		&& defwidthle(fn, i->arg[1], w))
+			return 1;
+		return 0;
+	}
+	if (ext(i, &e)) {
+		if (e.zext && e.usew <= w)
+			return 1;
+		w = min(w, e.nopw);
+		return defwidthle(fn, i->arg[0], w);
+	}
+
 	return 0;
 }
 
-/* is the ref a boolean - 0, 1 - value? */
-int
-iswu1(Fn *fn, Ref r)
+static int
+isw1(Fn *fn, Ref r)
 {
 	return defwidthle(fn, r, 1);
 }
 
-static int
-isnarrowpar(Fn *fn, Ref r)
-{
-	Tmp *t;
-
-	if (rtype(r) != RTmp)
-		return 0;
-	t = &fn->tmp[r.val];
-	if (t->bid != fn->start->id || t->def == 0)
-		return 0;
-	return ispar(t->def->op);
-}
-
-/* Insert extub/extuh instructions in start for pars used only narrowly */
-/* needs use; breaks use */
+/* insert early extub/extuh instructions
+ * for pars used only narrowly; this
+ * helps factoring extensions out of
+ * loops
+ *
+ * needs use; breaks use
+ */
 void
 narrowpars(Fn *fn)
 {
 	Blk *b;
 	int loop;
-	Ins *i, *ins;
+	Ins ext, *i, *ins;
 	uint npar, nins;
-	enum O extop;
 	Ref r;
 
 	/* only useful for functions with loops */
 	loop = 0;
-	for (b = fn->start; b; b = b->link)
+	for (b=fn->start; b; b=b->link)
 		if (b->loop > 1) {
 			loop = 1;
 			break;
@@ -218,49 +220,47 @@ narrowpars(Fn *fn)
 		return;
 
 	b = fn->start;
-	npar = 0;
 
-	for (i = b->ins; i < &b->ins[b->nins]; i++) {
+	npar = 0;
+	for (i=b->ins; i<&b->ins[b->nins]; i++) {
 		if (!ispar(i->op))
 			break;
 		npar++;
 	}
-
 	if (npar == 0)
 		return;
 
 	nins = b->nins + npar;
-	ins = vnew(nins, sizeof ins[0], PFn); //alloc(nins * sizeof ins[0]);
-	memcpy(ins, b->ins, npar * sizeof ins[0]);
-	memcpy(ins + 2*npar, b->ins + npar, (b->nins - npar) * sizeof ins[0]);
+	ins = vnew(nins, sizeof ins[0], PFn);
+	icpy(ins, b->ins, npar);
+	icpy(ins + 2*npar, b->ins+npar, b->nins-npar);
 	b->ins = ins;
 	b->nins = nins;
 
-	for (i = b->ins; i < &b->ins[b->nins]; i++) {
+	for (i=b->ins; i<&b->ins[b->nins]; i++) {
 		if (!ispar(i->op))
 			break;
-		extop = Onop;
+		ext = (Ins){.op = Onop};
 		if (i->cls == Kw)
-			if (usewidthle(fn, i->to, 16)) {
-				if (usewidthle(fn, i->to, 8))
-					extop = Oextub;
-				else
-					extop = Oextuh;
-			}
-		if (extop == Onop) {
-			*(i+npar) = (Ins) {.op = Onop};
-		} else {
+		if (usewidthle(fn, i->to, 16)) {
+			ext.op = Oextuh;
+			if (usewidthle(fn, i->to, 8))
+				ext.op = Oextub;
 			r = newtmp("vw", i->cls, fn);
-			*(i+npar) = (Ins) {.op = extop, .cls = i->cls, .to = i->to, .arg = {r}};
+			ext.cls = i->cls;
+			ext.to = i->to;
+			ext.arg[0] = r;
 			i->to = r;
 		}
+		*(i+npar) = ext;
 	}
 }
 
-/* used by GVN */
 Ref
 copyref(Fn *fn, Blk *b, Ins *i)
 {
+	/* which extensions are copies for a given
+	 * argument width */
 	static bits extcpy[] = {
 		[WFull] = 0,
 		[Wsb] = BIT(Wsb) | BIT(Wsh) | BIT(Wsw),
@@ -270,63 +270,133 @@ copyref(Fn *fn, Blk *b, Ins *i)
 		[Wsw] = BIT(Wsw),
 		[Wuw] = BIT(Wuw),
 	};
-	bits bext;
+	Ext e;
 	Tmp *t;
 	int64_t v;
-	int is0;
+	int w, z;
 
 	if (i->op == Ocopy)
 		return i->arg[0];
 
 	/* op identity value */
-	if (optab[i->op].hasid)
-	if (KBASE(i->cls) == 0) /* integer only - fp NaN! */
-	if (req(i->arg[1], con01[optab[i->op].idval]))
-	if (!optab[i->op].cmpeqwl || iswu1(fn, i->arg[0]))
+	if (optab[i->op].hasid
+	&& KBASE(i->cls) == 0 /* integer only - fp NaN! */
+	&& req(i->arg[1], con01[optab[i->op].idval])
+	&& (!optab[i->op].cmpeqwl || isw1(fn, i->arg[0])))
 		return i->arg[0];
 
 	/* idempotent op with identical args */
-	if (optab[i->op].idemp)
-	if (req(i->arg[0], i->arg[1]))
+	if (optab[i->op].idemp
+	&& req(i->arg[0], i->arg[1]))
 		return i->arg[0];
 
 	/* integer cmp with identical args */
-	if (optab[i->op].cmpeqwl || optab[i->op].cmplgtewl)
-	if (req(i->arg[0], i->arg[1]))
+	if ((optab[i->op].cmpeqwl || optab[i->op].cmplgtewl)
+	&& req(i->arg[0], i->arg[1]))
 		return con01[optab[i->op].eqval];
 
-	/* cmpeq/ne 0 with 0/non-0 inference from dominating jnz */
-	if (optab[i->op].cmpeqwl)
-	if (req(i->arg[1], con01[0]))
-	if (is0non0(fn, b, i->arg[0], argcls(i,0), &is0))
-		return con01[optab[i->op].eqval^is0^1];
+	/* cmpeq/ne 0 with 0/non-0 inference */
+	if (optab[i->op].cmpeqwl
+	&& req(i->arg[1], CON_Z)
+	&& zeroval(fn, b, i->arg[0], argcls(i, 0), &z))
+		return con01[optab[i->op].eqval^z^1];
 
 	/* redundant and mask */
-	if (i->op == Oand)
-	if (isconbits(fn, i->arg[1], &v))
-	if (((v+1) & v) == 0) /* v == 2^N-1 */
-	if (defwidthle(fn, i->arg[0], u64_wbits(v)))
+	if (i->op == Oand
+	&& isconbits(fn, i->arg[1], &v)
+	&& (v > 0 && ((v+1) & v) == 0)
+	&& defwidthle(fn, i->arg[0], bitwidth(v)))
 		return i->arg[0];
 
-	if (!isext(i->op) || rtype(i->arg[0]) != RTmp)
+	if (i->cls == Kw
+	&& (i->op == Oextsw || i->op == Oextuw))
+		return i->arg[0];
+
+	if (ext(i, &e) && rtype(i->arg[0]) == RTmp) {
+		t = &fn->tmp[i->arg[0].val];
+		assert(KBASE(t->cls) == 0);
+
+		/* do not break typing by returning
+		 * a narrower temp */
+		if (KWIDE(i->cls) > KWIDE(t->cls))
+			return R;
+
+		w  = Wsb + (i->op - Oextsb);
+		if (BIT(w) & extcpy[t->width])
+			return i->arg[0];
+
+		/* avoid eliding extensions of params
+		 * inserted in the start block; their
+		 * point is to make further extensions
+		 * redundant */
+		if ((!t->def || !ispar(t->def->op))
+		&& usewidthle(fn, i->to, e.usew))
+			return i->arg[0];
+
+		if (defwidthle(fn, i->arg[0], e.nopw))
+			return i->arg[0];
+	}
+
+	return R;
+}
+
+static int
+phieq(Phi *pa, Phi *pb)
+{
+	Ref r;
+	uint n;
+
+	assert(pa->narg == pb->narg);
+	for (n=0; n<pa->narg; n++) {
+		r = phiarg(pb, pa->blk[n]);
+		if (!req(pa->arg[n], r))
+			return 0;
+	}
+	return 1;
+}
+
+Ref
+phicopyref(Fn *fn, Blk *b, Phi *p)
+{
+	Blk *d, **s;
+	Phi *p1;
+	uint n, c;
+
+	/* identical args */
+	for (n=0; n<p->narg-1; n++)
+		if (!req(p->arg[n], p->arg[n+1]))
+			break;
+	if (n == p->narg-1)
+		return p->arg[n];
+
+	/* same as a previous phi */
+	for (p1=b->phi; p1!=p; p1=p1->link) {
+		assert(p1);
+		if (phieq(p1, p))
+			return p1->to;
+	}
+
+	/* can be replaced by a
+	 * dominating jnz arg */
+	d = b->idom;
+	if (p->narg != 2
+	|| d->jmp.type != Jjnz
+	|| !isw1(fn, d->jmp.arg))
 		return R;
-	if (i->op == Oextsw || i->op == Oextuw)
-	if (i->cls == Kw)
-		return i->arg[0];
 
-	t = &fn->tmp[i->arg[0].val];
-	assert(KBASE(t->cls) == 0);
-	if (i->cls == Kl && t->cls == Kw)
-		return R;
-	bext = extcpy[t->width];
-	if ((BIT(Wsb + (i->op-Oextsb)) & bext) != 0)
-		return i->arg[0];
+	s = (Blk*[]){0, 0};
+	for (n=0; n<2; n++)
+		for (c=0; c<2; c++)
+			if (req(p->arg[n], con01[c]))
+				s[c] = p->blk[n];
 
-	if (!isnarrowpar(fn, i->arg[0]))
-	if (usewidthle(fn, i->to, EXTW[i->op - Oextsb]))
-		return i->arg[0];
-	if (defwidthle(fn, i->arg[0], EXTMAXW[i->op - Oextsb]))
-		return i->arg[0];
+	/* if s1 ends with a jnz on either b
+	 * or s2; the inference below is wrong
+	 * without the jump type checks */
+	if (d->s1 == s[1] && d->s2 == s[0]
+	&& d->s1->jmp.type == Jjmp
+	&& d->s2->jmp.type == Jjmp)
+		return d->jmp.arg;
 
 	return R;
 }
