@@ -70,7 +70,7 @@ struct Stmt {
 
 int yylex(void), yyerror(char *);
 Symb expr(Node *), lval(Node *);
-void bool(Node *, int, int);
+void branch(Node *, int, int);
 
 FILE *of;
 int line;
@@ -329,7 +329,7 @@ expr(Node *n)
 	case 'a':
 		l = lbl;
 		lbl += 3;
-		bool(n, l, l+1);
+		branch(n, l, l+1);
 		fprintf(of, "@l%d\n", l);
 		fprintf(of, "\tjmp @l%d\n", l+2);
 		fprintf(of, "@l%d\n", l+1);
@@ -468,7 +468,7 @@ lval(Node *n)
 }
 
 void
-bool(Node *n, int lt, int lf)
+branch(Node *n, int lt, int lf)
 {
 	Symb s;
 	int l;
@@ -483,16 +483,16 @@ bool(Node *n, int lt, int lf)
 	case 'o':
 		l = lbl;
 		lbl += 1;
-		bool(n->l, lt, l);
+		branch(n->l, lt, l);
 		fprintf(of, "@l%d\n", l);
-		bool(n->r, lt, lf);
+		branch(n->r, lt, lf);
 		break;
 	case 'a':
 		l = lbl;
 		lbl += 1;
-		bool(n->l, l, lf);
+		branch(n->l, l, lf);
 		fprintf(of, "@l%d\n", l);
-		bool(n->r, lt, lf);
+		branch(n->r, lt, lf);
 		break;
 	}
 }
@@ -526,7 +526,7 @@ stmt(Stmt *s, int b)
 	case If:
 		l = lbl;
 		lbl += 3;
-		bool(s->p1, l, l+1);
+		branch(s->p1, l, l+1);
 		fprintf(of, "@l%d\n", l);
 		if (!(r=stmt(s->p2, b)))
 		if (s->p3)
@@ -540,7 +540,7 @@ stmt(Stmt *s, int b)
 		l = lbl;
 		lbl += 3;
 		fprintf(of, "@l%d\n", l);
-		bool(s->p1, l+1, l+2);
+		branch(s->p1, l+1, l+2);
 		fprintf(of, "@l%d\n", l+1);
 		if (!stmt(s->p2, l+2))
 			fprintf(of, "\tjmp @l%d\n", l);
