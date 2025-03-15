@@ -195,7 +195,7 @@ emitf(char *s, Ins *i, E *e)
 			goto Switch;
 		case '?':
 			if (KBASE(k) == 0)
-				fputs(rname(R18, k), e->f);
+				fputs(rname(IP1, k), e->f);
 			else
 				fputs(k==Ks ? "s31" : "d31", e->f);
 			break;
@@ -346,9 +346,9 @@ fixarg(Ref *pr, int sz, E *e)
 	if (rtype(r) == RSlot) {
 		s = slot(r, e);
 		if (s > sz * 4095u) {
-			i = &(Ins){Oaddr, Kl, TMP(IP0), {r}};
+			i = &(Ins){Oaddr, Kl, TMP(IP1), {r}};
 			emitins(i, e);
-			*pr = TMP(IP0);
+			*pr = TMP(IP1);
 		}
 	}
 }
@@ -393,7 +393,7 @@ emitins(Ins *i, E *e)
 		if (rtype(i->to) == RSlot) {
 			r = i->to;
 			if (!isreg(i->arg[0])) {
-				i->to = TMP(R18);
+				i->to = TMP(IP1);
 				emitins(i, e);
 				i->arg[0] = i->to;
 			}
@@ -414,7 +414,7 @@ emitins(Ins *i, E *e)
 			emitins(i, e);
 			break;
 		default:
-			assert(i->to.val != R18);
+			assert(i->to.val != IP1);
 			goto Table;
 		}
 		break;

@@ -16,7 +16,7 @@ int arm64_rclob[] = {
 	-1
 };
 
-#define RGLOB (BIT(FP) | BIT(SP) | BIT(R18))
+#define RGLOB (BIT(FP) | BIT(SP) | BIT(IP1) | BIT(R18))
 
 static int
 arm64_memargs(int op)
@@ -31,7 +31,7 @@ arm64_memargs(int op)
 	.fpr0 = V0, \
 	.nfpr = NFPR, \
 	.rglob = RGLOB, \
-	.nrglob = 3, \
+	.nrglob = 4, \
 	.rsave = arm64_rsave, \
 	.nrsave = {NGPS, NFPS}, \
 	.retregs = arm64_retregs, \
