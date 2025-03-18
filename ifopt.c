@@ -1,3 +1,4 @@
+#if 0
 #include "all.h"
 
 enum {
@@ -134,3 +135,4 @@ ifconvert(Fn *fn)
 		printfn(fn, stderr);
 	}
 }
+#endif
