@@ -163,6 +163,7 @@ addins(Ins **pvins, uint *pnins, Ins *i)
 	(*pvins)[(*pnins)-1] = *i;
 }
 
+/* FIXME: change param order */
 void
 addbins(Blk *b, Ins **pvins, uint *pnins)
 {

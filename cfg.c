@@ -13,6 +13,9 @@ newblk()
 	return b;
 }
 
+/* BORKEN!!!
+ * we have to enforce that phi blks are preds
+ */
 static void
 fixphis(Fn *f)
 {
@@ -395,4 +398,127 @@ reachesnotvia(Fn *fn, Blk *b, Blk *to, Blk *excl)
 {
 	excl->visit = 1;
 	return reaches(fn, b, to);
+}
+
+typedef struct Jmp Jmp;
+
+struct Jmp {
+	int type;
+	Ref arg;
+	Blk *s1, *s2;
+};
+
+static int
+jmpeq(Jmp *a, Jmp *b)
+{
+	return a->type == b->type && req(a->arg, b->arg)
+		&& a->s1 == b->s1 && a->s2 == b->s2;
+}
+
+static int
+jmpnophi(Jmp *j)
+{
+	if (j->s1 && j->s1->phi)
+		return 0;
+	if (j->s2 && j->s2->phi)
+		return 0;
+	return 1;
+}
+
+/* require cfg rpo, breaks use */
+void
+simplcfg(Fn *fn)
+{
+	Ins cpy, *i;
+	Blk *b, *bb, **pb;
+	Jmp *jmp, *j, *jj;
+	Phi *p;
+	int *empty, done;
+	uint n;
+
+	if (debug['C']) {
+		fprintf(stderr, "\n> Before CFG simplification:\n");
+		printfn(fn, stderr);
+	}
+
+	cpy = (Ins){.op = Ocopy};
+	for (b=fn->start; b; b=b->link)
+		if (b->npred == 1) {
+			bb = b->pred[0];
+			for (p=b->phi; p; p=p->link) {
+				/* TODO fix fixphis and
+				 * use p->arg[0] */
+				cpy.cls = p->cls;
+				cpy.to = p->to;
+				cpy.arg[0] = phiarg(p, bb);
+				addins(&bb->ins, &bb->nins, &cpy);
+			}
+			b->phi = 0;
+		}
+
+	jmp = emalloc(fn->nblk * sizeof jmp[0]);
+	empty = emalloc(fn->nblk * sizeof empty[0]);
+	for (b=fn->start; b; b=b->link) {
+		jmp[b->id].type = b->jmp.type;
+		jmp[b->id].arg = b->jmp.arg;
+		jmp[b->id].s1 = b->s1;
+		jmp[b->id].s2 = b->s2;
+		empty[b->id] = !b->phi;
+		for (i=b->ins; i<&b->ins[b->nins]; i++)
+			if (i->op != Onop || i->op != Odbgloc) {
+				empty[b->id] = 0;
+				break;
+			}
+	}
+
+	do {
+		done = 1;
+		for (b=fn->start; b; b=b->link) {
+			if (b->id == -1u)
+				continue;
+			j = &jmp[b->id];
+			if (j->type == Jjmp && j->s1->npred == 1) {
+				assert(!j->s1->phi);
+				addbins(j->s1, &b->ins, &b->nins);
+				empty[b->id] &= empty[j->s1->id];
+				jj = &jmp[j->s1->id];
+				pb = (Blk*[]){jj->s1, jj->s2, 0};
+				for (; (bb=*pb); pb++)
+					for (p=bb->phi; p; p=p->link) {
+						n = phiargn(p, j->s1);
+						p->blk[n] = b;
+					}
+				j->s1->id = -1u;
+				*j = *jj;
+				done = 0;
+			}
+			else if (j->type == Jjnz
+			&& empty[j->s1->id] && empty[j->s2->id]
+			&& jmpeq(&jmp[j->s1->id], &jmp[j->s2->id])
+			&& jmpnophi(&jmp[j->s1->id])) {
+				*j = jmp[j->s1->id];
+				done = 0;
+			}
+		}
+	} while (!done);
+
+	for (b=fn->start; b; b=b->link)
+		if (b->id != -1u) {
+			j = &jmp[b->id];
+			b->jmp.type = j->type;
+			b->jmp.arg = j->arg;
+			b->s1 = j->s1;
+			b->s2 = j->s2;
+			assert(!j->s1 || j->s1->id != -1u);
+			assert(!j->s2 || j->s2->id != -1u);
+		}
+
+	fillcfg(fn);
+	free(empty);
+	free(jmp);
+
+	if (debug['C']) {
+		fprintf(stderr, "\n> After CFG simplification:\n");
+		printfn(fn, stderr);
+	}
 }

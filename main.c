@@ -77,11 +77,13 @@ func(Fn *fn)
 	ssacheck(fn);
 	gvn(fn);
 	fillcfg(fn);
+	simplcfg(fn);
 	filluse(fn);
 	filldom(fn);
 	gcm(fn);
 	filluse(fn);
 	ssacheck(fn);
+#if 0
 	if (T.cansel) {
 		ifconvert(fn);
 		fillcfg(fn);
@@ -89,6 +91,7 @@ func(Fn *fn)
 		filldom(fn);
 		ssacheck(fn);
 	}
+#endif
 	T.abi1(fn);
 	simpl(fn);
 	fillcfg(fn);
