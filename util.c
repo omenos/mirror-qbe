@@ -282,6 +282,17 @@ igroup(Blk *b, Ins *i, Ins **i0, Ins **i1)
 		assert(i < ie);
 		*i1 = i + 1;
 		return;
+	case Osel1:
+		for (; i>ib && (i-1)->op == Osel1; i--)
+			;
+		assert(i->op == Osel0);
+		/* fall through */
+	case Osel0:
+		*i0 = i++;
+		for (; i<ie && i->op == Osel1; i++)
+			;
+		*i1 = i;
+		return;
 	default:
 		if (ispar(i->op))
 			goto case_Opar;
