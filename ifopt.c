@@ -1,4 +1,3 @@
-#if 0
 #include "all.h"
 
 enum {
@@ -51,44 +50,36 @@ okgraph(Blk *ifb, Blk *thenb, Blk *elseb, Blk *joinb)
 }
 
 static void
-convert(Blk *ifb, Blk *thenb, Blk *elseb, Blk *joinb, Ins **pvins)
+convert(Blk *ifb, Blk *thenb, Blk *elseb, Blk *joinb)
 {
+	Ins *ins, sel;
 	Phi *p;
-	Suc *st, *sf;
-	Ref argt, argf;
-	uint np, nins;
-	Ins *i;
+	uint nins;
 
+	ins = vnew(0, sizeof ins[0], PHeap);
 	nins = 0;
-	addbins(ifb, pvins, &nins);
+	addbins(ifb, &ins, &nins);
 	if (thenb != ifb)
-		addbins(thenb, pvins, &nins);
+		addbins(thenb, &ins, &nins);
 	if (elseb != ifb)
-		addbins(elseb, pvins, &nins);
+		addbins(elseb, &ins, &nins);
 	assert(joinb->npred == 2);
 	if (joinb->phi) {
-		i = &(Ins){
+		sel = (Ins){
 			.op = Osel0, .cls = Kw,
 			.arg = {ifb->jmp.arg},
 		};
-		addins(pvins, &nins, i);
+		addins(&ins, &nins, &sel);
 	}
-	for (np = 0; np < joinb->nphi; np++) {
-		p = &joinb->phi[np];
-		st = getsuc(thenb, joinb);
-		assert(st->nr == joinb->nphi);
-		argt = st->r[np];
-		sf = getsuc(elseb, joinb);
-		assert(st->nr == joinb->nphi);
-		argf = sf->r[np];
-		assert(KBASE(p->cls) == 0);
-		i = &(Ins){
-			.op = Osel1, .cls = p->cls,
-			.to = p->to, .arg = {argt, argf}
-		};
-		addins(pvins, &nins, i);
+	sel = (Ins){.op = Osel1};
+	for (p=joinb->phi; p; p=p->link) {
+		sel.to = p->to;
+		sel.cls = p->cls;
+		sel.arg[0] = phiarg(p, thenb);
+		sel.arg[1] = phiarg(p, elseb);
+		addins(&ins, &nins, &sel);
 	}
-	idup(ifb, *pvins, nins);
+	idup(ifb, ins, nins);
 	ifb->jmp.type = Jjmp;
 	ifb->jmp.arg = R;
 	ifb->s1 = joinb;
@@ -96,6 +87,7 @@ convert(Blk *ifb, Blk *thenb, Blk *elseb, Blk *joinb, Ins **pvins)
 	joinb->npred = 1;
 	joinb->pred[0] = ifb;
 	joinb->phi = 0;
+	vfree(ins);
 }
 
 /* eliminate if-then[-else] graphlets
@@ -106,17 +98,10 @@ void
 ifconvert(Fn *fn)
 {
 	Blk *ifb, *thenb, *elseb, *joinb;
-	Ins *vins;
 
 	if (debug['K'])
 		fputs("\n> If-conversion:\n", stderr);
 
-	/* create more trivial if/then/else graphlets */
-	// blkmerge(fn);
-	// fillcfg(fn);
-	// filluse(fn);
-
-	vins = vnew(0, sizeof vins[0], PHeap);
 	for (ifb=fn->start; ifb; ifb=ifb->link) {
 		if (ifgraph(ifb, &thenb, &elseb, &joinb)
 		&& okgraph(ifb, thenb, elseb, joinb)) {
@@ -125,14 +110,12 @@ ifconvert(Fn *fn)
 					"    @%s -> @%s, @%s -> @%s\n",
 					ifb->name, thenb->name, elseb->name,
 					joinb->name);
-			convert(ifb, thenb, elseb, joinb, &vins);
+			convert(ifb, thenb, elseb, joinb);
 		}
 	}
-	vfree(vins);
 
 	if (debug['K']) {
 		fprintf(stderr, "\n> After if-conversion:\n");
 		printfn(fn, stderr);
 	}
 }
-#endif

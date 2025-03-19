@@ -399,6 +399,50 @@ reachesnotvia(Fn *fn, Blk *b, Blk *to, Blk *excl)
 	return reaches(fn, b, to);
 }
 
+/* match an if-then[-else] graphlet; when the
+ * else branch is missing, pelseb is set to ifb
+ */
+int
+ifgraph(Blk *ifb, Blk **pthenb, Blk **pelseb, Blk **pjoinb)
+{
+	Blk *s1, *s2;
+
+	if (ifb->jmp.type != Jjnz)
+		return 0;
+
+	s1 = ifb->s1;
+	s2 = ifb->s2;
+	if (s1->id > s2->id) {
+		s1 = ifb->s2;
+		s2 = ifb->s1;
+	}
+	if (s1 == s2)
+		return 0;
+
+	if (s1->jmp.type != Jjmp || s1->npred != 1)
+		return 0;
+
+	if (s1->s1 == s2) {
+		/* if-then / if-else */
+		if (s2->npred != 2)
+			return 0;
+		*pthenb = s1;
+		*pelseb = ifb;
+		*pjoinb = s2;
+		return 1;
+	}
+
+	if (s2->jmp.type != Jjmp || s2->npred != 1)
+		return 0;
+	if (s1->s1 != s2->s1 || s1->s1->npred != 2)
+		return 0;
+
+	*pthenb = s1;
+	*pelseb = s2;
+	*pjoinb = s1->s1;
+	return 1;
+}
+
 typedef struct Jmp Jmp;
 
 struct Jmp {
