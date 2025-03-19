@@ -399,13 +399,10 @@ reachesnotvia(Fn *fn, Blk *b, Blk *to, Blk *excl)
 	return reaches(fn, b, to);
 }
 
-/* match an if-then[-else] graphlet; when the
- * else branch is missing, pelseb is set to ifb
- */
 int
 ifgraph(Blk *ifb, Blk **pthenb, Blk **pelseb, Blk **pjoinb)
 {
-	Blk *s1, *s2;
+	Blk *s1, *s2, **t;
 
 	if (ifb->jmp.type != Jjnz)
 		return 0;
@@ -415,6 +412,9 @@ ifgraph(Blk *ifb, Blk **pthenb, Blk **pelseb, Blk **pjoinb)
 	if (s1->id > s2->id) {
 		s1 = ifb->s2;
 		s2 = ifb->s1;
+		t = pthenb;
+		pthenb = pelseb;
+		pelseb = t;
 	}
 	if (s1 == s2)
 		return 0;
