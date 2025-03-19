@@ -13,8 +13,7 @@ newblk()
 	return b;
 }
 
-/* BORKEN!!!
- * we have to enforce that phi blks are preds
+/* FIXME: enforce that phi blks are preds
  */
 static void
 fixphis(Fn *f)
