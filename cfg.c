@@ -437,6 +437,7 @@ ifgraph(Blk *ifb, Blk **pthenb, Blk **pelseb, Blk **pjoinb)
 	if (s1->s1 != s2->s1 || s1->s1->npred != 2)
 		return 0;
 
+	assert(s1->s1 != ifb);
 	*pthenb = s1;
 	*pelseb = s2;
 	*pjoinb = s1->s1;
