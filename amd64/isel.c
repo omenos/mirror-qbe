@@ -87,7 +87,7 @@ fixarg(Ref *r, int k, Ins *i, Fn *fn)
 		vgrow(&fn->mem, ++fn->nmem);
 		memset(&a, 0, sizeof a);
 		a.offset.type = CAddr;
-		n = stashbits(&fn->con[r0.val].bits, KWIDE(k) ? 8 : 4);
+		n = stashbits(fn->con[r0.val].bits.i, KWIDE(k) ? 8 : 4);
 		/* quote the name so that we do not
 		 * add symbol prefixes on the apple
 		 * target variant

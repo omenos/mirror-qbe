@@ -41,7 +41,7 @@ fixarg(Ref *r, int k, Ins *i, Fn *fn)
 			 * immediates
 			 */
 			assert(c->type == CBits);
-			n = stashbits(&c->bits, KWIDE(k) ? 8 : 4);
+			n = stashbits(c->bits.i, KWIDE(k) ? 8 : 4);
 			vgrow(&fn->con, ++fn->ncon);
 			c = &fn->con[fn->ncon-1];
 			sprintf(buf, "\"%sfp%d\"", T.asloc, n);

@@ -109,7 +109,7 @@ fixarg(Ref *pr, int k, int phi, Fn *fn)
 		if (KBASE(k) == 0) {
 			emit(Ocopy, k, r1, r0, R);
 		} else {
-			n = stashbits(&c->bits, KWIDE(k) ? 8 : 4);
+			n = stashbits(c->bits.i, KWIDE(k) ? 8 : 4);
 			vgrow(&fn->con, ++fn->ncon);
 			c = &fn->con[fn->ncon-1];
 			sprintf(buf, "\"%sfp%d\"", T.asloc, n);
