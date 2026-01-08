@@ -630,6 +630,7 @@ static RegisterUsage lower_func_parameters(Fn* func) {
   // when adding to it.
   curi = &insb[NIns];
 
+  int reg_counter = 0;
   RegisterUsage reg_usage = {0};
   if (func->retty >= 0) {
     bool by_copy = type_is_by_copy(&typ[func->retty]);
@@ -639,6 +640,7 @@ static RegisterUsage lower_func_parameters(Fn* func) {
       Ref ret_ref = newtmp("abi.ret", Kl, func);
       emit(Ocopy, Kl, ret_ref, TMP(RCX), R);
       func->retr = ret_ref;
+      ++reg_counter;
     }
   }
   Ref env = R;
@@ -650,7 +652,6 @@ static RegisterUsage lower_func_parameters(Fn* func) {
   // Copy from the registers or stack slots into the named parameters. Depending
   // on how they're passed, they either need to be copied or loaded.
   ArgClass* arg = arg_classes;
-  int reg_counter = 0;
   uint slot_offset = SHADOW_SPACE_SIZE / 4 + 4;
   for (Ins* instr = start_of_params; instr < end_of_params; ++instr, ++arg) {
     switch (arg->style) {
