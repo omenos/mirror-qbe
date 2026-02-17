@@ -34,7 +34,6 @@ typedef struct Lnk Lnk;
 typedef struct Target Target;
 
 enum {
-	NString = 80,
 	NIns    = 1 << 20,
 	NAlign  = 3,
 	NField  = 32,
@@ -274,7 +273,7 @@ struct Blk {
 	BSet in[1], out[1], gen[1];
 	int nlive[2];
 	int loop;
-	char name[NString];
+	char *name;
 };
 
 struct Use {
@@ -336,7 +335,7 @@ struct Alias {
 };
 
 struct Tmp {
-	char name[NString];
+	char *name;
 	Ins *def;
 	Use *use;
 	uint ndef, nuse;
@@ -415,12 +414,12 @@ struct Fn {
 	char vararg;
 	char dynalloc;
 	char leaf;
-	char name[NString];
+	char *name;
 	Lnk lnk;
 };
 
 struct Typ {
-	char name[NString];
+	char *name;
 	char isdark;
 	char isunion;
 	int align;
@@ -490,7 +489,7 @@ void vfree(void *);
 void vgrow(void *, ulong);
 void addins(Ins **, uint *, Ins *);
 void addbins(Ins **, uint *, Blk *);
-void strf(char[NString], char *, ...);
+char *strf(char *, ...);
 uint32_t intern(char *);
 char *str(uint32_t);
 int argcls(Ins *, int);

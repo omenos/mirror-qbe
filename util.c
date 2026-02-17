@@ -172,14 +172,21 @@ addbins(Ins **pvins, uint *pnins, Blk *b)
 		addins(pvins, pnins, i);
 }
 
-void
-strf(char str[NString], char *s, ...)
+char *
+strf(char *s, ...)
 {
 	va_list ap;
+	int n;
+	char *p;
 
 	va_start(ap, s);
-	vsnprintf(str, NString, s, ap);
+	n = vsnprintf(NULL, 0, s, ap);
 	va_end(ap);
+	p = alloc(n + 1);
+	va_start(ap, s);
+	vsnprintf(p, n + 1, s, ap);
+	va_end(ap);
+	return p;
 }
 
 uint32_t
@@ -443,7 +450,7 @@ newtmp(char *prfx, int k,  Fn *fn)
 	vgrow(&fn->tmp, fn->ntmp);
 	memset(&fn->tmp[t], 0, sizeof(Tmp));
 	if (prfx)
-		strf(fn->tmp[t].name, "%s.%d", prfx, ++n);
+		fn->tmp[t].name = strf("%s.%d", prfx, ++n);
 	fn->tmp[t].cls = k;
 	fn->tmp[t].slot = -1;
 	fn->tmp[t].nuse = +1;

@@ -235,7 +235,7 @@ getint()
 static int
 lex()
 {
-	static char tok[NString];
+	char *tok;
 	int c, i, esc;
 	int t;
 
@@ -321,10 +321,10 @@ lex()
 Alpha:
 	if (!isalpha(c) && c != '.' && c != '_')
 		err("invalid character %c (%d)", c, c);
+	tok = vnew(2, 1, PFn);
 	i = 0;
 	do {
-		if (i >= NString-1)
-			err("identifier too long");
+		vgrow(&tok, i+2);
 		tok[i++] = c;
 		c = fgetc(inf);
 	} while (isalpha(c) || c == '$' || c == '.' || c == '_' || isdigit(c));
@@ -421,7 +421,7 @@ tmpref(char *v)
 	t = curf->ntmp;
 	tmph[i] = t;
 	newtmp(0, Kx, curf);
-	strcpy(curf->tmp[t].name, v);
+	curf->tmp[t].name = v;
 	return TMP(t);
 }
 
@@ -594,7 +594,7 @@ findblk(char *name)
 			return b;
 	b = newblk();
 	b->id = nblk++;
-	strcpy(b->name, name);
+	b->name = name;
 	b->dlink = blkh[h];
 	blkh[h] = b;
 	return b;
@@ -940,7 +940,7 @@ parsefn(Lnk *lnk)
 		rcls = K0;
 	if (next() != Tglo)
 		err("function name expected");
-	strncpy(curf->name, tokval.str, NString-1);
+	curf->name = tokval.str;
 	curf->vararg = parserefl(0);
 	if (nextnl() != Tlbrace)
 		err("function body must start with {");
@@ -1050,6 +1050,7 @@ parsetyp()
 	ty->size = 0;
 	if (nextnl() != Ttyp ||  nextnl() != Teq)
 		err("type name and then = expected");
+	ty->name = emalloc(strlen(tokval.str)+1);
 	strcpy(ty->name, tokval.str);
 	t = nextnl();
 	if (t == Talign) {
@@ -1115,13 +1116,13 @@ parsedatstr(Dat *d)
 static void
 parsedat(void cb(Dat *), Lnk *lnk)
 {
-	char name[NString] = {0};
+	char *name;
 	int t;
 	Dat d;
 
 	if (nextnl() != Tglo || nextnl() != Teq)
 		err("data name, then = expected");
-	strncpy(name, tokval.str, NString-1);
+	name = tokval.str;
 	t = nextnl();
 	lnk->align = 8;
 	if (t == Talign) {
@@ -1251,9 +1252,11 @@ parse(FILE *f, char *path, void dbgfile(char *), void data(Dat *), void func(Fn 
 			parsetyp();
 			break;
 		case Teof:
-			for (n=0; n<ntyp; n++)
+			for (n=0; n<ntyp; n++) {
+				free(typ[n].name);
 				if (typ[n].nunion)
 					vfree(typ[n].fields);
+			}
 			vfree(typ);
 			return;
 		}
