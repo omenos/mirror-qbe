@@ -215,12 +215,15 @@ getint()
 	n = 0;
 	c = fgetc(inf);
 	m = (c == '-');
-	if (m)
+	if (m) {
 		c = fgetc(inf);
+		if (!isdigit(c))
+			err("integer expected");
+	}
 	do {
 		n = 10*n + (c - '0');
 		c = fgetc(inf);
-	} while ('0' <= c && c <= '9');
+	} while (isdigit(c));
 	ungetc(c, inf);
 	if (m)
 		n = 1 + ~n;
