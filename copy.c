@@ -41,9 +41,8 @@ bitwidth(uint64_t v)
 	return n+v;
 }
 
-/* no more than w bits are used */
 static int
-usewidthle(Fn *fn, Ref r, int w)
+uwl(Fn *fn, Ref r, int w)
 {
 	Ext e;
 	Tmp *t;
@@ -52,7 +51,6 @@ usewidthle(Fn *fn, Ref r, int w)
 	Ins *i;
 	Ref rc;
 	int64_t v;
-	int b;
 
 	assert(rtype(r) == RTmp);
 	t = &fn->tmp[r.val];
@@ -69,21 +67,19 @@ usewidthle(Fn *fn, Ref r, int w)
 			if (p->visit || req(p->to, R))
 				continue;
 			p->visit = 1;
-			b = usewidthle(fn, p->to, w);
-			p->visit = 0;
-			if (b)
+			if (uwl(fn, p->to, w))
 				continue;
 			break;
 		case UIns:
 			i = u->u.ins;
 			assert(i != 0);
 			if (i->op == Ocopy)
-				if (usewidthle(fn, i->to, w))
+				if (uwl(fn, i->to, w))
 					continue;
 			if (ext(i, &e)) {
 				if (e.usew <= w)
 					continue;
-				if (usewidthle(fn, i->to, w))
+				if (uwl(fn, i->to, w))
 					continue;
 			}
 			if (i->op == Oand) {
@@ -105,6 +101,21 @@ usewidthle(Fn *fn, Ref r, int w)
 		return 0;
 	}
 	return 1;
+}
+
+/* no more than w bits are used */
+static int
+usewidthle(Fn *fn, Ref r, int w)
+{
+	Blk *b;
+	Phi *p;
+	int ret;
+
+	ret = uwl(fn, r, w);
+	for (b=fn->start; b; b=b->link)
+		for (p=b->phi; p; p=p->link)
+			p->visit = 0;
+	return ret;
 }
 
 static int
