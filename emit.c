@@ -221,7 +221,7 @@ macho_emitfin(FILE *f)
 	static char *sec[3] = {
 		"__TEXT,__literal4,4byte_literals",
 		"__TEXT,__literal8,8byte_literals",
-		".abort \"unreachable\"",
+		"__TEXT,__literal16,16byte_literals",
 	};
 
 	emitfin(f, sec);
