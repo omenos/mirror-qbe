@@ -57,6 +57,7 @@ enum Token {
 	Thlt,
 	Texport,
 	Tthread,
+	Textern,
 	Tcommon,
 	Tfunc,
 	Ttype,
@@ -116,6 +117,7 @@ static char *kwmap[Ntok] = {
 	[Thlt] = "hlt",
 	[Texport] = "export",
 	[Tthread] = "thread",
+	[Textern] = "extern",
 	[Tcommon] = "common",
 	[Tfunc] = "function",
 	[Ttype] = "type",
@@ -427,11 +429,10 @@ static Ref
 parseref()
 {
 	Con c;
+	int tok;
 
 	memset(&c, 0, sizeof c);
-	switch (next()) {
-	default:
-		return R;
+	switch ((tok = next())) {
 	case Ttmp:
 		return tmpref(tokval.str);
 	case Tint:
@@ -448,9 +449,20 @@ parseref()
 		c.bits.d = tokval.fltd;
 		c.flt = 2;
 		break;
-	case Tthread:
-		c.sym.type = SThr;
-		expect(Tglo);
+	default:
+		for (;; tok=next()) {
+			switch (tok) {
+			case Textern:
+				c.sym.type |= SExt;
+				continue;
+			case Tthread:
+				c.sym.type |= SThr;
+				continue;
+			}
+			break;
+		}
+		if (tok != Tglo)
+			return R;
 		/* fall through */
 	case Tglo:
 		c.type = CAddr;
@@ -1255,7 +1267,9 @@ printcon(Con *c, FILE *f)
 	case CUndef:
 		break;
 	case CAddr:
-		if (c->sym.type == SThr)
+		if (c->sym.type & SExt)
+			fprintf(f, "extern ");
+		if (c->sym.type & SThr)
 			fprintf(f, "thread ");
 		fprintf(f, "$%s", str(c->sym.id));
 		if (c->bits.i)

@@ -278,6 +278,10 @@ loadaddr(Con *c, char *rn, E *e)
 			s = "\tadrp\tR, SO\n"
 			    "\tadd\tR, R, #:lo12:SO\n";
 		break;
+	case SExtThr:
+		if (!T.apple)
+			die("extern thread unavailable on arm64");
+		/* fall through */
 	case SThr:
 		if (T.apple)
 			s = "\tadrp\tR, S@tlvppage\n"
@@ -286,6 +290,14 @@ loadaddr(Con *c, char *rn, E *e)
 			s = "\tmrs\tR, tpidr_el0\n"
 			    "\tadd\tR, R, #:tprel_hi12:SO, lsl #12\n"
 			    "\tadd\tR, R, #:tprel_lo12_nc:SO\n";
+		break;
+	case SExt:
+		if (T.apple)
+			s = "\tadrp\tR, S@gotpageO\n"
+			    "\tldr\tR, [R, S@gotpageoffO]\n";
+		else
+			s = "\tadrp\tR, :got:SO\n"
+			    "\tldr\tR, [R, #:got_lo12:SO]\n";
 		break;
 	}
 
@@ -468,7 +480,7 @@ emitins(Ins *i, E *e)
 			goto Table;
 		c = &e->fn->con[i->arg[0].val];
 		if (c->type != CAddr
-		|| c->sym.type != SGlo
+		|| (c->sym.type & SThr)
 		|| c->bits.i)
 			die("invalid call argument");
 		l = str(c->sym.id);

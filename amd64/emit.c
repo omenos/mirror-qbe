@@ -196,12 +196,12 @@ emitcon(Con *con, E *e)
 		l = str(con->sym.id);
 		p = l[0] == '"' ? "" : T.assym;
 		if (con->sym.type == SThr) {
-			if (T.apple)
-				fprintf(e->f, "%s%s@TLVP", p, l);
-			else
-				fprintf(e->f, "%%fs:%s%s@tpoff", p, l);
-		} else
+			assert(!T.apple);
+			fprintf(e->f, "%%fs:%s%s@tpoff", p, l);
+		} else {
+			assert((con->sym.type & ~SExt) == SGlo);
 			fprintf(e->f, "%s%s", p, l);
+		}
 		if (con->bits.i)
 			fprintf(e->f, "%+"PRId64, con->bits.i);
 		break;
@@ -380,7 +380,7 @@ Next:
 			off = e->fn->con[ref.val];
 			emitcon(&off, e);
 			if (off.type == CAddr)
-			if (off.sym.type != SThr || T.apple)
+			if (off.sym.type != SThr)
 				fprintf(e->f, "(%%rip)");
 			break;
 		case RTmp:
@@ -532,14 +532,22 @@ emitins(Ins i, E *e)
 		emitf("mov%k %0, %=", &i, e);
 		break;
 	case Oaddr:
-		if (!T.apple
-		&& rtype(i.arg[0]) == RCon
-		&& e->fn->con[i.arg[0].val].sym.type == SThr) {
+		if (rtype(i.arg[0]) != RCon)
+			goto Table;
+		con = &e->fn->con[i.arg[0].val];
+		assert(isreg(i.to) && con->type == CAddr);
+		sym = str(con->sym.id);
+		if (T.apple && (con->sym.type & SThr)) {
+			fprintf(e->f,
+				"\tmovq %s%s@tlvp(%%rip), %%%s\n",
+				sym[0] == '"' ? "" : T.assym, sym,
+				regtoa(i.to.val, SLong));
+			break;
+		}
+		switch (con->sym.type) {
+		case SThr:
 			/* derive the symbol address from the TCB
 			 * address at offset 0 of %fs */
-			assert(isreg(i.to));
-			con = &e->fn->con[i.arg[0].val];
-			sym = str(con->sym.id);
 			emitf("movq %%fs:0, %L=", &i, e);
 			fprintf(e->f, "\tleaq %s%s@tpoff",
 				sym[0] == '"' ? "" : T.assym, sym);
@@ -550,15 +558,40 @@ emitins(Ins i, E *e)
 				regtoa(i.to.val, SLong),
 				regtoa(i.to.val, SLong));
 			break;
+		case SExtThr:
+			/* initial-exec TLS: load offset from
+			 * GOT, add to thread-base register */
+			assert(!con->bits.i);
+			emitf("movq %%fs:0, %L=", &i, e);
+			fprintf(e->f,
+				"\taddq %s%s@gottpoff(%%rip), %%%s\n",
+				sym[0] == '"' ? "" : T.assym, sym,
+				regtoa(i.to.val, SLong));
+			break;
+		case SExt:
+			/* load address from the GOT */
+			assert(!con->bits.i);
+			fprintf(e->f,
+				"\tmovq %s%s@gotpcrel(%%rip), %%%s\n",
+				sym[0] == '"' ? "" : T.assym, sym,
+				regtoa(i.to.val, SLong));
+			break;
+		default:
+			goto Table;
 		}
-		goto Table;
+		break;
 	case Ocall:
 		/* calls simply have a weird syntax in AT&T
 		 * assembly... */
 		switch (rtype(i.arg[0])) {
 		case RCon:
+			con = &e->fn->con[i.arg[0].val];
 			fprintf(e->f, "\tcallq ");
-			emitcon(&e->fn->con[i.arg[0].val], e);
+			emitcon(con, e);
+			if (con->type == CAddr
+			&& (con->sym.type & SExt)
+			&& !T.apple)
+				fprintf(e->f, "@plt");
 			fprintf(e->f, "\n");
 			break;
 		case RTmp:

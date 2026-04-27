@@ -180,7 +180,9 @@ by zero-extension, or by sign-extension.
 
     DYNCONST :=
         CONST
-      | 'thread' $IDENT  # Thread-local symbol
+      | 'thread' $IDENT          # Thread-local symbol
+      | 'extern' $IDENT          # Extern symbol (GOT)
+      | 'extern' 'thread' $IDENT # Extern thread-local (initial-exec)
 
     VAL :=
         DYNCONST
@@ -224,6 +226,15 @@ constants by the linker.
 When the `thread` keyword prefixes a symbol name, the
 symbol's numeric value is resolved at runtime in the
 thread-local storage.
+
+When the `extern` keyword prefixes a symbol name, the
+symbol is accessed indirectly through a table edited
+by the dynamic linker (e.g., GOT/PLT).  This enables
+PIE/PIC code generation.  When `extern` is combined
+with `thread`, the symbol is accessed using the
+initial-exec TLS model, suitable for thread-local
+variables defined in shared objects available at
+startup time (i.e., not loaded through dlopen).
 
 Vals are used as arguments in regular, phi, and jump
 instructions within function definitions.  They are

@@ -80,7 +80,7 @@ fixarg(Ref *pr, int k, int phi, Fn *fn)
 		c = &fn->con[r0.val];
 		if (T.apple
 		&& c->type == CAddr
-		&& c->sym.type == SThr) {
+		&& (c->sym.type & SThr)) {
 			r1 = newtmp("isel", Kl, fn);
 			*pr = r1;
 			if (c->bits.i) {

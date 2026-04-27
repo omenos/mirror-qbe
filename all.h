@@ -293,8 +293,10 @@ struct Use {
 
 struct Sym {
 	enum {
-		SGlo,
-		SThr,
+		SGlo  = 0, /* direct access */
+		SThr  = 1, /* local-exec TLS */
+		SExt  = 2, /* GOT/PLT access */
+		SExtThr = SExt|SThr, /* initial-exec TLS */
 	} type;
 	uint32_t id;
 };
