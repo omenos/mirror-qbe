@@ -500,7 +500,6 @@ void emiti(Ins);
 void idup(Blk *, Ins *, ulong);
 Ins *icpy(Ins *, Ins *, ulong);
 int cmpop(int);
-int cmpneg(int);
 int cmpwlneg(int);
 int clsmerge(short *, short);
 int phicls(int, Tmp *);

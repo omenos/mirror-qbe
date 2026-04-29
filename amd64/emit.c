@@ -22,8 +22,8 @@ struct E {
 	X(Ciuge,      "ae", "b") \
 	X(Cieq,       "z", "nz") \
 	X(Cine,       "nz", "z") \
-	X(NCmpI+Cfle, "be", "a") \
-	X(NCmpI+Cflt, "b", "ae") \
+	X(NCmpI+Cfle, "?" , "?") \
+	X(NCmpI+Cflt, "?",  "?") \
 	X(NCmpI+Cfgt, "a", "be") \
 	X(NCmpI+Cfge, "ae", "b") \
 	X(NCmpI+Cfo,  "np", "p") \
@@ -627,8 +627,8 @@ sysv_framesz(E *e)
 void
 amd64_sysv_emitfn(Fn *fn, FILE *f)
 {
-	static char *ctoa[] = {
-	#define X(c, s, _) [c] = s,
+	static char *ctoa[][2] = {
+	#define X(c, s, n) [c] = {s, n},
 		CMP(X)
 	#undef X
 	};
@@ -710,13 +710,14 @@ amd64_sysv_emitfn(Fn *fn, FILE *f)
 		default:
 			c = b->jmp.type - Jjf;
 			if (0 <= c && c <= NCmp) {
-				if (b->link == b->s2 || c >= NCmpI) {
+				if (b->link == b->s2) {
 					s = b->s1;
 					b->s1 = b->s2;
 					b->s2 = s;
+					n = 0;
 				} else
-					c = cmpneg(c);
-				fprintf(f, "\tj%s %sbb%d\n", ctoa[c],
+					n = 1;
+				fprintf(f, "\tj%s %sbb%d\n", ctoa[c][n],
 					T.asloc, id0+b->s2->id);
 				goto Jmp;
 			}
@@ -752,15 +753,15 @@ winabi_framesz(E *e)
 void
 amd64_winabi_emitfn(Fn *fn, FILE *f)
 {
-	static char *ctoa[] = {
-	#define X(c, s, _) [c] = s,
+	static char *ctoa[][2] = {
+	#define X(c, s, n) [c] = {s, n},
 		CMP(X)
 	#undef X
 	};
 	static int id0;
 	Blk *b, *s;
 	Ins *i, itmp;
-	int *r, c, lbl;
+	int *r, c, n, lbl;
 	E *e;
 
 	e = &(E){.f = f, .fn = fn};
@@ -831,9 +832,10 @@ amd64_winabi_emitfn(Fn *fn, FILE *f)
 					s = b->s1;
 					b->s1 = b->s2;
 					b->s2 = s;
+					n = 0;
 				} else
-					c = cmpneg(c);
-				fprintf(f, "\tj%s %sbb%d\n", ctoa[c],
+					n = 1;
+				fprintf(f, "\tj%s %sbb%d\n", ctoa[c][n],
 					T.asloc, id0+b->s2->id);
 				goto Jmp;
 			}

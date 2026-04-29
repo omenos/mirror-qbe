@@ -10,24 +10,24 @@ struct E {
 };
 
 #define CMP(X) \
-	X(Cieq,       "eq") \
-	X(Cine,       "ne") \
-	X(Cisge,      "ge") \
-	X(Cisgt,      "gt") \
-	X(Cisle,      "le") \
-	X(Cislt,      "lt") \
-	X(Ciuge,      "cs") \
-	X(Ciugt,      "hi") \
-	X(Ciule,      "ls") \
-	X(Ciult,      "cc") \
-	X(NCmpI+Cfeq, "eq") \
-	X(NCmpI+Cfge, "ge") \
-	X(NCmpI+Cfgt, "gt") \
-	X(NCmpI+Cfle, "ls") \
-	X(NCmpI+Cflt, "mi") \
-	X(NCmpI+Cfne, "ne") \
-	X(NCmpI+Cfo,  "vc") \
-	X(NCmpI+Cfuo, "vs")
+	X(Cieq,       "eq", "ne") \
+	X(Cine,       "ne", "eq") \
+	X(Cisge,      "ge", "lt") \
+	X(Cisgt,      "gt", "le") \
+	X(Cisle,      "le", "gt") \
+	X(Cislt,      "lt", "ge") \
+	X(Ciuge,      "cs", "cc") \
+	X(Ciugt,      "hi", "ls") \
+	X(Ciule,      "ls", "hi") \
+	X(Ciult,      "cc", "cs") \
+	X(NCmpI+Cfeq, "eq", "ne") \
+	X(NCmpI+Cfge, "ge", "lt") \
+	X(NCmpI+Cfgt, "gt", "le") \
+	X(NCmpI+Cfle, "ls", "hi") \
+	X(NCmpI+Cflt, "mi", "pl") \
+	X(NCmpI+Cfne, "ne", "eq") \
+	X(NCmpI+Cfo,  "vc", "vs") \
+	X(NCmpI+Cfuo, "vs", "vc")
 
 enum {
 	Ki = -1, /* matches Kw and Kl */
@@ -102,7 +102,7 @@ static struct {
 	{ Oacmn,   Ki, "cmn %0, %1" },
 	{ Oafcmp,  Ka, "fcmpe %0, %1" },
 
-#define X(c, str) \
+#define X(c, str, _) \
 	{ Oflag+c, Ki, "cset %=, " str },
 	CMP(X)
 #undef X
@@ -532,8 +532,8 @@ framelayout(E *e)
 void
 arm64_emitfn(Fn *fn, FILE *out)
 {
-	static char *ctoa[] = {
-	#define X(c, s) [c] = s,
+	static char *ctoa[][2] = {
+	#define X(c, s, n) [c] = {s, n},
 		CMP(X)
 	#undef X
 	};
@@ -660,15 +660,16 @@ arm64_emitfn(Fn *fn, FILE *out)
 			c = b->jmp.type - Jjf;
 			if (c < 0 || c > NCmp)
 				die("unhandled jump %d", b->jmp.type);
-			if (b->link == b->s2 || c >= NCmpI) {
+			if (b->link == b->s2) {
 				t = b->s1;
 				b->s1 = b->s2;
 				b->s2 = t;
+				n = 0;
 			} else
-				c = cmpneg(c);
+				n = 1;
 			fprintf(e->f,
 				"\tb%s\t%s%d\n",
-				ctoa[c], T.asloc, id0+b->s2->id
+				ctoa[c][n], T.asloc, id0+b->s2->id
 			);
 			goto Jmp;
 		}

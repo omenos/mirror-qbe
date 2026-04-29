@@ -365,13 +365,6 @@ static int cmptab[][2] ={
 };
 
 int
-cmpneg(int c)
-{
-	assert(0 <= c && c < NCmpI);
-	return cmptab[c][0];
-}
-
-int
 cmpop(int c)
 {
 	assert(0 <= c && c < NCmp);
@@ -382,9 +375,9 @@ int
 cmpwlneg(int op)
 {
 	if (INRANGE(op, Ocmpw, Ocmpw1))
-		return cmpneg(op - Ocmpw) + Ocmpw;
+		return cmptab[op - Ocmpw][0] + Ocmpw;
 	if (INRANGE(op, Ocmpl, Ocmpl1))
-		return cmpneg(op - Ocmpl) + Ocmpl;
+		return cmptab[op - Ocmpl][0] + Ocmpl;
 	die("not a wl comparison");
 }
 
