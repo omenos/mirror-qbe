@@ -660,7 +660,7 @@ arm64_emitfn(Fn *fn, FILE *out)
 			c = b->jmp.type - Jjf;
 			if (c < 0 || c > NCmp)
 				die("unhandled jump %d", b->jmp.type);
-			if (b->link == b->s2) {
+			if (b->link == b->s2 || c >= NCmpI) {
 				t = b->s1;
 				b->s1 = b->s2;
 				b->s2 = t;
