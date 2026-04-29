@@ -710,7 +710,7 @@ amd64_sysv_emitfn(Fn *fn, FILE *f)
 		default:
 			c = b->jmp.type - Jjf;
 			if (0 <= c && c <= NCmp) {
-				if (b->link == b->s2) {
+				if (b->link == b->s2 || c >= NCmpI) {
 					s = b->s1;
 					b->s1 = b->s2;
 					b->s2 = s;
@@ -827,7 +827,7 @@ amd64_winabi_emitfn(Fn *fn, FILE *f)
 		default:
 			c = b->jmp.type - Jjf;
 			if (0 <= c && c <= NCmp) {
-				if (b->link == b->s2) {
+				if (b->link == b->s2 || c >= NCmpI) {
 					s = b->s1;
 					b->s1 = b->s2;
 					b->s2 = s;
