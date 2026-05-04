@@ -544,6 +544,8 @@ emitins(Ins i, E *e)
 				regtoa(i.to.val, SLong));
 			break;
 		}
+		if (T.windows && con->sym.type != SGlo)
+			die("extern/thread unsupported on amd64_win");
 		switch (con->sym.type) {
 		case SThr:
 			/* derive the symbol address from the TCB
