@@ -15,13 +15,17 @@ struct RMap {
 	int n;
 };
 
+enum {
+	NPm = 128,     /* max copies in a parallel move */
+};
+
 static bits regu;      /* registers used */
 static Tmp *tmp;       /* function temporaries */
 static Mem *mem;       /* function mem references */
 static struct {
 	Ref src, dst;
 	int cls;
-} pm[Tmp0];            /* parallel move constructed */
+} pm[NPm];             /* parallel move constructed */
 static int npm;        /* size of pm */
 static int loop;       /* current loop level */
 
@@ -190,8 +194,8 @@ mdump(RMap *m)
 static void
 pmadd(Ref src, Ref dst, int k)
 {
-	if (npm == Tmp0)
-		die("cannot have more moves than registers");
+	if (npm == NPm)
+		die("no more pm slots");
 	pm[npm].src = src;
 	pm[npm].dst = dst;
 	pm[npm].cls = k;
