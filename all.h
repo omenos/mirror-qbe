@@ -240,11 +240,11 @@ struct Ins {
 
 struct Phi {
 	Ref to;
+	short cls;
+	int visit;
+	uint narg;
 	Ref *arg;
 	Blk **blk;
-	uint narg;
-	short cls;
-	uint visit:1;
 	Phi *link;
 };
 
