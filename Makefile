@@ -100,4 +100,4 @@ src:
 wc:
 	@wc -l $(SRCALL)
 
-.PHONY: clean clean-gen check check-arm64 check-rv64 src 80 wc install uninstall
+.PHONY: clean clean-gen check check-arm64 check-rv64 check-amd64_win src 80 wc install uninstall
