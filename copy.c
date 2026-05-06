@@ -388,14 +388,20 @@ phicopyref(Fn *fn, Blk *b, Phi *p)
 {
 	Blk *d, **s;
 	Phi *p1;
+	Ref r;
 	uint n, c;
 
 	/* identical args */
-	for (n=0; n<p->narg-1; n++)
-		if (!req(p->arg[n], p->arg[n+1]))
-			break;
-	if (n == p->narg-1)
-		return p->arg[n];
+	r = R;
+	for (n=0; n<p->narg; n++)
+		if (!req(p->arg[n], p->to)) {
+			if (req(r, R))
+				r = p->arg[n];
+			else if (!req(p->arg[n], r))
+				break;
+		}
+	if (n == p->narg)
+		return r;
 
 	/* same as a previous phi */
 	for (p1=b->phi; p1!=p; p1=p1->link) {
