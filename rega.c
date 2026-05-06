@@ -16,7 +16,7 @@ struct RMap {
 };
 
 enum {
-	NPm = 128,     /* max copies in a parallel move */
+	NPm = 64,     /* max copies in a parallel move */
 };
 
 static bits regu;      /* registers used */
