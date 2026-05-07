@@ -174,7 +174,7 @@ rebase(Slice *sl)
 	if (rtype(sl->ref) != RTmp)
 		return;
 	a = &curf->tmp[sl->ref.val].alias;
-	if (a->offset < 1<<16)
+	if (a->offset == (short)a->offset)
 	if (a->type == ALoc
 	|| a->type == AEsc
 	|| a->type == AUnk) {
