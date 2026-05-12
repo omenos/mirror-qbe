@@ -489,7 +489,7 @@ void vfree(void *);
 void vgrow(void *, ulong);
 void addins(Ins **, uint *, Ins *);
 void addbins(Ins **, uint *, Blk *);
-char *strf(char *, ...);
+char *strf(Pool, char *, ...);
 uint32_t intern(char *);
 char *str(uint32_t);
 int argcls(Ins *, int);

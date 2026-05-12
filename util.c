@@ -173,7 +173,7 @@ addbins(Ins **pvins, uint *pnins, Blk *b)
 }
 
 char *
-strf(char *s, ...)
+strf(Pool pool, char *s, ...)
 {
 	va_list ap;
 	int n;
@@ -182,7 +182,7 @@ strf(char *s, ...)
 	va_start(ap, s);
 	n = vsnprintf(NULL, 0, s, ap);
 	va_end(ap);
-	p = alloc(n + 1);
+	p = (pool == PFn ? alloc : emalloc)(n + 1);
 	va_start(ap, s);
 	vsnprintf(p, n + 1, s, ap);
 	va_end(ap);
@@ -450,7 +450,7 @@ newtmp(char *prfx, int k,  Fn *fn)
 	vgrow(&fn->tmp, fn->ntmp);
 	memset(&fn->tmp[t], 0, sizeof(Tmp));
 	if (prfx)
-		fn->tmp[t].name = strf("%s.%d", prfx, ++n);
+		fn->tmp[t].name = strf(PFn, "%s.%d", prfx, ++n);
 	fn->tmp[t].cls = k;
 	fn->tmp[t].slot = -1;
 	fn->tmp[t].nuse = +1;

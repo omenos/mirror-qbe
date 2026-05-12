@@ -235,7 +235,6 @@ getint()
 static int
 lex()
 {
-	char *tok;
 	int c, i, esc;
 	int t;
 
@@ -302,7 +301,6 @@ lex()
 	if (c == '"') {
 		t = Tstr;
 	Quoted:
-		tokval.str = vnew(2, 1, PFn);
 		tokval.str[0] = c;
 		esc = 0;
 		for (i=1;; i++) {
@@ -321,22 +319,20 @@ lex()
 Alpha:
 	if (!isalpha(c) && c != '.' && c != '_')
 		err("invalid character %c (%d)", c, c);
-	tok = vnew(2, 1, PFn);
 	i = 0;
 	do {
-		vgrow(&tok, i+2);
-		tok[i++] = c;
+		vgrow(&tokval.str, i+2);
+		tokval.str[i++] = c;
 		c = fgetc(inf);
 	} while (isalpha(c) || c == '$' || c == '.' || c == '_' || isdigit(c));
-	tok[i] = 0;
+	tokval.str[i] = 0;
 	ungetc(c, inf);
-	tokval.str = tok;
 	if (t != Txxx) {
 		return t;
 	}
-	t = lexh[hash(tok)*K >> M];
-	if (t == Txxx || strcmp(kwmap[t], tok) != 0) {
-		err("unknown keyword %s", tok);
+	t = lexh[hash(tokval.str)*K >> M];
+	if (t == Txxx || strcmp(kwmap[t], tokval.str) != 0) {
+		err("unknown keyword %s", tokval.str);
 		return Txxx;
 	}
 	return t;
@@ -397,7 +393,7 @@ expect(int t)
 }
 
 static Ref
-tmpref(char *v)
+tmpref()
 {
 	int t, i;
 
@@ -412,16 +408,16 @@ tmpref(char *v)
 			tmph[i] = t;
 		}
 	}
-	i = hash(v) & (tmphcap-1);
+	i = hash(tokval.str) & (tmphcap-1);
 	for (; tmph[i]; i=(i+1) & (tmphcap-1)) {
 		t = tmph[i];
-		if (strcmp(curf->tmp[t].name, v) == 0)
+		if (strcmp(curf->tmp[t].name, tokval.str) == 0)
 			return TMP(t);
 	}
 	t = curf->ntmp;
 	tmph[i] = t;
 	newtmp(0, Kx, curf);
-	curf->tmp[t].name = v;
+	curf->tmp[t].name = strf(PFn, "%s", tokval.str);
 	return TMP(t);
 }
 
@@ -434,7 +430,7 @@ parseref()
 	memset(&c, 0, sizeof c);
 	switch ((tok = next())) {
 	case Ttmp:
-		return tmpref(tokval.str);
+		return tmpref();
 	case Tint:
 		c.type = CBits;
 		c.bits.i = tokval.num;
@@ -583,18 +579,18 @@ parserefl(int arg)
 }
 
 static Blk *
-findblk(char *name)
+findblk()
 {
 	Blk *b;
 	uint32_t h;
 
-	h = hash(name) & BMask;
+	h = hash(tokval.str) & BMask;
 	for (b=blkh[h]; b; b=b->dlink)
-		if (strcmp(b->name, name) == 0)
+		if (strcmp(b->name, tokval.str) == 0)
 			return b;
 	b = newblk();
 	b->id = nblk++;
-	b->name = name;
+	b->name = strf(PFn, "%s", tokval.str);
 	b->dlink = blkh[h];
 	blkh[h] = b;
 	return b;
@@ -624,7 +620,7 @@ parseline(PState ps)
 		err("label or } expected");
 	switch (t) {
 	case Ttmp:
-		r = tmpref(tokval.str);
+		r = tmpref();
 		expect(Teq);
 		k = parsecls(&ty);
 		op = next();
@@ -644,7 +640,7 @@ parseline(PState ps)
 	case Trbrace:
 		return PEnd;
 	case Tlbl:
-		b = findblk(tokval.str);
+		b = findblk();
 		if (curb && curb->jmp.type == Jxxx) {
 			closeblk();
 			curb->jmp.type = Jjmp;
@@ -680,11 +676,11 @@ parseline(PState ps)
 		expect(Tcomma);
 	Jump:
 		expect(Tlbl);
-		curb->s1 = findblk(tokval.str);
+		curb->s1 = findblk();
 		if (curb->jmp.type != Jjmp) {
 			expect(Tcomma);
 			expect(Tlbl);
-			curb->s2 = findblk(tokval.str);
+			curb->s2 = findblk();
 		}
 		if (curb->s1 == curf->start || curb->s2 == curf->start)
 			err("invalid jump to the start block");
@@ -744,7 +740,7 @@ parseline(PState ps)
 				err("too many arguments");
 			if (op == Tphi) {
 				expect(Tlbl);
-				blk[i] = findblk(tokval.str);
+				blk[i] = findblk();
 			}
 			arg[i] = parseref();
 			if (req(arg[i], R))
@@ -940,7 +936,7 @@ parsefn(Lnk *lnk)
 		rcls = K0;
 	if (next() != Tglo)
 		err("function name expected");
-	curf->name = tokval.str;
+	curf->name = strf(PFn, "%s", tokval.str);
 	curf->vararg = parserefl(0);
 	if (nextnl() != Tlbrace)
 		err("function body must start with {");
@@ -1050,8 +1046,7 @@ parsetyp()
 	ty->size = 0;
 	if (nextnl() != Ttyp ||  nextnl() != Teq)
 		err("type name and then = expected");
-	ty->name = emalloc(strlen(tokval.str)+1);
-	strcpy(ty->name, tokval.str);
+	ty->name = strf(PHeap, "%s", tokval.str);
 	t = nextnl();
 	if (t == Talign) {
 		if (nextnl() != Tint)
@@ -1095,7 +1090,7 @@ parsedatref(Dat *d)
 	int t;
 
 	d->isref = 1;
-	d->u.ref.name = tokval.str;
+	d->u.ref.name = strf(PFn, "%s", tokval.str);
 	d->u.ref.off = 0;
 	t = peek();
 	if (t == Tplus) {
@@ -1110,7 +1105,7 @@ static void
 parsedatstr(Dat *d)
 {
 	d->isstr = 1;
-	d->u.str = tokval.str;
+	d->u.str = strf(PFn, "%s", tokval.str);
 }
 
 static void
@@ -1122,7 +1117,7 @@ parsedat(void cb(Dat *), Lnk *lnk)
 
 	if (nextnl() != Tglo || nextnl() != Teq)
 		err("data name, then = expected");
-	name = tokval.str;
+	name = strf(PFn, "%s", tokval.str);
 	t = nextnl();
 	lnk->align = 8;
 	if (t == Talign) {
@@ -1204,10 +1199,10 @@ parselnk(Lnk *lnk)
 				err("only one section allowed");
 			if (next() != Tstr)
 				err("section \"name\" expected");
-			lnk->sec = tokval.str;
+			lnk->sec = strf(PFn, "%s", tokval.str);
 			if (peek() == Tstr) {
 				next();
-				lnk->secf = tokval.str;
+				lnk->secf = strf(PFn, "%s", tokval.str);
 			}
 			break;
 		default:
@@ -1232,6 +1227,7 @@ parse(FILE *f, char *path, void dbgfile(char *), void data(Dat *), void func(Fn 
 	thead = Txxx;
 	ntyp = 0;
 	typ = vnew(0, sizeof typ[0], PHeap);
+	tokval.str = vnew(128, 1, PHeap);
 	for (;;) {
 		lnk = (Lnk){0};
 		switch (parselnk(&lnk)) {

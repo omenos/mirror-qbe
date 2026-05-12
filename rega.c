@@ -673,7 +673,7 @@ rega(Fn *fn)
 			b1->link = blist;
 			blist = b1;
 			fn->nblk++;
-			b1->name = strf("%s_%s", b->name, s->name);
+			b1->name = strf(PFn, "%s_%s", b->name, s->name);
 			stmov += &insb[NIns]-curi;
 			stblk += 1;
 			idup(b1, curi, &insb[NIns]-curi);

@@ -511,7 +511,7 @@ split(Fn *fn, Blk *b)
 	idup(bn, curi, &insb[NIns]-curi);
 	curi = &insb[NIns];
 	bn->visit = ++b->visit;
-	bn->name = strf("%s.%d", b->name, b->visit);
+	bn->name = strf(PFn, "%s.%d", b->name, b->visit);
 	bn->loop = b->loop;
 	bn->link = b->link;
 	b->link = bn;
