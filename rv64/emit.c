@@ -133,8 +133,12 @@ emitaddr(Con *c, FILE *f)
 {
 	assert((c->sym.type & ~SExt) == SGlo);
 	fputs(str(c->sym.id), f);
-	if (c->bits.i)
+	if (c->bits.i) {
+		/* TODO: fix isel to ensure no offset for SGlo */
+		if (c->sym.type & SExt)
+			die("extern with offset is not supported");
 		fprintf(f, "+%"PRIi64, c->bits.i);
+	}
 }
 
 static void
@@ -233,14 +237,8 @@ loadaddr(Con *c, char *rn, FILE *f)
 
 	switch (c->sym.type) {
 	case SGlo:
-		fprintf(f, "\tlui %s, %%hi(", rn);
-		emitaddr(c, f);
-		fprintf(f, ")\n\taddi %s, %s, %%lo(", rn, rn);
-		emitaddr(c, f);
-		fputs(")\n", f);
-		break;
 	case SExt:
-		fprintf(f, "\tla %s, ", rn);
+		fprintf(f, "\t%s %s, ", c->sym.type == SExt ? "lga" : "lla", rn);
 		emitaddr(c, f);
 		fputc('\n', f);
 		break;
