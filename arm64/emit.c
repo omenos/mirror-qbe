@@ -396,12 +396,12 @@ emitins(Ins *i, E *e)
 			t = T.apple ? -1 : R18;
 			if (fixarg(&i->arg[1], storesz(i), t, e)) {
 				if (req(i->arg[0], TMP(IP1))) {
+					t = i->op == Ostorel || i->op == Ostored;
 					fprintf(e->f,
 						"\tfmov\t%c31, %c17\n",
-						"ds"[i->cls == Kw],
-						"xw"[i->cls == Kw]);
+						"sd"[t], "wx"[t]);
 					i->arg[0] = TMP(V31);
-					i->op = Ostores + (i->cls-Kw);
+					i->op = t ? Ostored : Ostores;
 				}
 				fixarg(&i->arg[1], storesz(i), IP1, e);
 			}
